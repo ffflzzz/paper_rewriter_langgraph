@@ -21,7 +21,7 @@ function saveThreadId(threadId: string) {
 
 // ── 主应用 ──
 
-const RUNTIME_URL = `${window.location.origin}/pr/api/copilotkit`;
+const RUNTIME_URL = `${window.location.origin}/pr-rt/api/copilotkit`;
 
 function App() {
   const [threadId, setThreadId] = useState(() => getOrCreateThreadId());

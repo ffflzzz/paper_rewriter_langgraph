@@ -117,6 +117,14 @@ function ChatPanel({ threadId }: { threadId: string }) {
                 setStreamContent(fullContent);
               }
             }
+            // AG-UI TEXT_MESSAGE events
+            if (evt.type === 'TEXT_MESSAGE_CONTENT') {
+              const content = evt.content || '';
+              if (content) {
+                fullContent += content;
+                setStreamContent(fullContent);
+              }
+            }
             if (evt.type === 'RAW' && evt.event?.event === 'on_tool_end') {
               // Tool result - could display
             }

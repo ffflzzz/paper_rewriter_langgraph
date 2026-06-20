@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>论文重写 — LangGraph 多Agent系统</title>
+<script src="/ui/vis-network.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--border:#30363d;--text:#e6e6e6;--dim:#8b949e;--blue:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--purple:#d2a8ff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border)}
+header h1{font-size:16px;font-weight:600;color:var(--blue);flex:1}
+.badge{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600}
+.badge.idle{background:#21262d;color:var(--dim)}.badge.running{background:#1a3a2a;color:var(--green);animation:pulse 1.5s infinite}
+.badge.completed{background:#1a2a3a;color:var(--blue)}.badge.error{background:#3a1a1a;color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.main{display:grid;grid-template-columns:1fr 400px;overflow:hidden}
+/* 左侧：图 + 节点详情 */
+.left{display:flex;flex-direction:column;overflow:hidden}
+.graph-wrap{flex:1;position:relative;background:var(--bg);min-height:300px}
+#graph-container{width:100%;height:100%}
+.node-detail{height:200px;background:var(--bg2);border-top:1px solid var(--border);overflow-y:auto;padding:12px 16px}
+.node-detail .title{font-size:13px;font-weight:600;color:var(--yellow);margin-bottom:8px}
+.node-detail pre{font-size:12px;color:var(--dim);white-space:pre-wrap;word-break:break-all;font-family:'Cascadia Code',monospace;line-height:1.5}
+/* 右侧：日志+状态 */
+.right{display:flex;flex-direction:column;border-left:1px solid var(--border)}
+.tabs{display:flex;background:var(--bg3);border-bottom:1px solid var(--border)}
+.tab{padding:8px 16px;font-size:12px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-body{flex:1;overflow-y:auto;padding:10px;display:none}
+.tab-body.active{display:block}
+/* 日志 */
+.log-entry{padding:4px 8px;border-radius:4px;margin-bottom:2px;font-size:12px;font-family:'Cascadia Code',monospace;line-height:1.4}
+.log-entry.node_start{color:var(--purple);background:rgba(210,168,255,.06)}
+.log-entry.node_end{color:var(--green);background:rgba(63,185,80,.06)}
+.log-entry.state_update{color:var(--blue);background:rgba(88,166,255,.06)}
+.log-entry.error{color:var(--red);background:rgba(248,81,73,.08)}
+.log-entry.complete{color:var(--green);background:rgba(63,185,80,.12);font-weight:600}
+.log-ts{color:#484f58;margin-right:6px;font-size:10px}
+/* 状态KV */
+.kv-row{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #21262d;font-size:12px}
+.kv-key{color:var(--dim);min-width:80px;flex-shrink:0}
+.kv-val{color:var(--text);word-break:break-all}
+/* 输入面板 */
+.input-panel{padding:12px 20px;background:var(--bg2);border-top:1px solid var(--border)}
+.input-tabs{display:flex;gap:4px;margin-bottom:8px}
+.input-tab{padding:4px 12px;font-size:12px;color:var(--dim);cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
+.input-tab.active{color:var(--blue);border-color:var(--blue);background:rgba(88,166,255,.08)}
+.input-area{display:none}.input-area.active{display:block}
+.input-row{display:flex;gap:8px;margin-bottom:8px}
+.input-row input,.input-row select{flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px}
+textarea{width:100%;height:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical}
+.btn-row{display:flex;gap:8px;margin-top:8px;align-items:center}
+.btn{padding:7px 20px;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600}
+.btn-primary{background:#238636;color:#fff}.btn-primary:hover{background:#2ea043}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--red);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.file-drop{border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;color:var(--dim);cursor:pointer;transition:border-color .2s}
+.file-drop:hover,.file-drop.dragover{border-color:var(--blue);color:var(--blue)}
+.file-drop input[type=file]{display:none}
+.file-info{font-size:12px;color:var(--green);margin-top:4px}
+.url-input{display:flex;gap:8px}
+.url-input input{flex:1}
+/* 通知横幅 */
+#notify-banner{position:fixed;top:0;left:0;right:0;z-index:1000;padding:12px 20px;
+  background:#1a3a2a;border-bottom:2px solid var(--green);color:var(--text);
+  font-size:14px;display:none;animation:slideDown .3s ease}
+#notify-banner.error{background:#3a1a1a;border-bottom-color:var(--red)}
+#notify-banner.show{display:flex;align-items:center;justify-content:space-between}
+#notify-banner .notify-close{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:0 8px}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="notify-banner"><span id="notify-text"></span><button class="notify-close" onclick="hideNotify()">✕</button></div>
+<div id="app">
+  <header>
+    <h1>📝 论文重写 — LangGraph 多Agent流水线</h1>
+    <div id="status-badge" class="badge idle">空闲</div>
+  </header>
+  <div class="main">
+    <div class="left">
+      <div class="graph-wrap"><div id="graph-container"></div></div>
+      <div class="node-detail"><pre id="node-detail-content">点击图中节点查看详情</pre></div>
+    </div>
+    <div class="right">
+      <div class="tabs">
+        <div class="tab active" data-tab="log">执行日志</div>
+        <div class="tab" data-tab="llm">LLM输出</div>
+        <div class="tab" data-tab="state">状态监控</div>
+      </div>
+      <div id="tab-log" class="tab-body active"></div>
+      <div id="tab-llm" class="tab-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+          <label style="font-size:12px;color:var(--dim);cursor:pointer;display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="chk-reasoning" checked> 显示推理过程
+          </label>
+          <label style="font-size:12px;color:var(--dim);cursor:pointer;display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="chk-autoscroll" checked> 自动滚动
+          </label>
+          <span id="llm-status" style="margin-left:auto;font-size:11px;color:var(--dim)"></span>
+        </div>
+        <div id="llm-output" style="font-family:'Cascadia Code',monospace;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all"></div>
+      </div>
+      <div id="tab-state" class="tab-body"><div style="color:var(--dim);text-align:center;padding:40px">启动后显示实时状态</div></div>
+    </div>
+  </div>
+  <div class="input-panel">
+    <div class="input-tabs">
+      <div class="input-tab active" data-input="text">📝 粘贴文本</div>
+      <div class="input-tab" data-input="file">📄 上传文件</div>
+      <div class="input-tab" data-input="url">🔗 网页链接</div>
+    </div>
+    <div class="input-row">
+      <input id="inp-title" placeholder="论文标题" value="">
+      <input id="inp-audience" placeholder="目标读者" value="大一非理工科学生">
+      <input id="inp-rounds" type="number" placeholder="轮次" value="3" style="width:70px">
+    </div>
+    <!-- 文本输入 -->
+    <div id="area-text" class="input-area active">
+      <textarea id="inp-text" placeholder="粘贴论文原文..."></textarea>
+    </div>
+    <!-- 文件上传 -->
+    <div id="area-file" class="input-area">
+      <div class="file-drop" id="file-drop">
+        <div>📄 拖拽文件到此处，或点击选择</div>
+        <div style="font-size:11px;margin-top:4px">支持 .pdf .txt .md</div>
+        <input type="file" id="file-input" accept=".pdf,.txt,.md">
+      </div>
+      <div id="file-info" class="file-info"></div>
+    </div>
+    <!-- URL输入 -->
+    <div id="area-url" class="input-area">
+      <div class="url-input">
+        <input id="inp-url" placeholder="输入网页URL，自动抓取正文...">
+        <button class="btn btn-secondary" id="btn-fetch-url">抓取</button>
+      </div>
+      <div id="url-info" class="file-info"></div>
+    </div>
+    <div class="btn-row">
+      <button id="btn-run" class="btn btn-primary">▶ 启动 Pipeline</button>
+      <button id="btn-stop" class="btn btn-danger" disabled>■ 停止</button>
+      <span id="run-info" style="font-size:11px;color:var(--dim);margin-left:auto"></span>
+    </div>
+  </div>
+</div>
+<script id="app-script">
+// PLACEHOLDER_JS
+const NODE_COLORS = {
+  start:{background:'#1a3a2a',border:'#3fb950'},process:{background:'#1a2a3a',border:'#58a6ff'},
+  decision:{background:'#3a2a1a',border:'#d29922'},end:{background:'#2a1a1a',border:'#f85149'}
+};
+let network,nodeDS,edgeDS,activeNode=null,sseSource=null,uploadedText='',currentTab='log';
+const nodeHistory={}; // {nodeId: [{ts,msg,state}]}
+const seenEventTs=new Set(); // SSE去重：防reconnect重放旧事件
+
+// ═══ 通知横幅 ═══
+function showNotify(html,type='success'){
+  const el=document.getElementById('notify-banner');
+  const txt=document.getElementById('notify-text');
+  txt.innerHTML=html;
+  el.className='show'+(type==='error'?' error':'');
+  // 10秒后自动隐藏（错误不自动隐藏）
+  if(type!=='error')setTimeout(hideNotify,10000);
+}
+function hideNotify(){document.getElementById('notify-banner').className=''}
+
+// ═══ Graph ═══
+async function initGraph(){
+  const r=await fetch('/api/graph');const d=await r.json();
+  const nodes=d.nodes.map(n=>({id:n.id,label:n.label,shape:'box',margin:14,font:{color:'#e6e6e6',size:13},
+    color:NODE_COLORS[n.type]||NODE_COLORS.process,borderWidth:2,borderRadius:6}));
+  nodes.unshift({id:'__start__',label:'开始',shape:'dot',size:16,font:{color:'#e6e6e6',size:11},color:{background:'#21262d',border:'#484f58'}});
+  nodes.push({id:'__end__',label:'结束',shape:'dot',size:16,font:{color:'#e6e6e6',size:11},color:{background:'#21262d',border:'#484f58'}});
+  const edges=d.edges.map(e=>({from:e.from,to:e.to,label:e.label,arrows:'to',
+    font:{color:'#8b949e',size:10,strokeWidth:0},color:{color:'#484f58',highlight:'#58a6ff',inherit:'both'},
+    smooth:{type:'cubicBezier'},width:1.5}));
+  nodeDS=new vis.DataSet(nodes);edgeDS=new vis.DataSet(edges);
+  network=new vis.Network(document.getElementById('graph-container'),{nodes:nodeDS,edges:edgeDS},{
+    physics:false,interaction:{dragNodes:false,zoomView:true,dragView:true},
+    layout:{improvedLayout:true}});
+  network.on('click',params=>{
+    if(params.nodes.length){showNodeDetail(params.nodes[0])}
+  });
+}
+
+function showNodeDetail(nodeId){
+  const el=document.getElementById('node-detail-content');
+  const hist=nodeHistory[nodeId];
+  if(!hist||!hist.length){el.textContent=`节点 [${nodeId}] — 尚未执行`;return}
+  let txt=`节点 [${nodeId}] — 执行 ${hist.length} 次\n${'─'.repeat(40)}\n`;
+  hist.forEach((h,i)=>{
+    const ts=new Date(h.ts*1000).toLocaleTimeString('zh-CN');
+    txt+=`\n#${i+1} ${ts}\n${h.msg}\n`;
+    if(h.state){const s=h.state;txt+=`  阶段: ${s.current_phase||'-'}  轮次: ${s.round_num||'-'}  评分: ${s.score||'-'}\n`}
+  });
+  el.textContent=txt;
+}
+
+function highlightNode(nid){
+  if(!nodeDS)return;
+  if(activeNode){const p=nodeDS.get(activeNode);if(p)nodeDS.update({id:activeNode,borderWidth:2,shadow:{enabled:false}})}
+  activeNode=nid;
+  if(nid&&nodeDS.get(nid)){
+    nodeDS.update({id:nid,borderWidth:3,shadow:{enabled:true,color:'rgba(88,166,255,0.6)',size:15}});
+    network?.selectNodes([nid]);
+    // 只在非LLM tab时才focus，避免看LLM输出时图乱跳
+    if(currentTab!=='llm'){
+      network?.focus(nid,{scale:1.1,animation:{duration:500,easingFunction:'easeInOutQuad'}});
+    }
+    showNodeDetail(nid);
+  }
+}
+
+// PLACEHOLDER_JS2
+
+// ═══ Tabs ═══
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-body').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+  currentTab=t.dataset.tab;
+});
+document.querySelectorAll('.input-tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.input-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.input-area').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('area-'+t.dataset.input).classList.add('active');
+  // 切换到文本tab时清理上传/抓取的文本，避免残留
+  if(t.dataset.input==='text')uploadedText='';
+});
+
+// ═══ Log ═══
+function addLog(e){
+  // 去重：防SSE reconnect重放旧事件
+  const dedupKey=e.timestamp+'_'+e.node_id+'_'+e.event_type;
+  if(seenEventTs.has(dedupKey))return;
+  seenEventTs.add(dedupKey);
+  if(seenEventTs.size>2000){const first=seenEventTs.values().next().value;seenEventTs.delete(first)}
+
+  const el=document.getElementById('tab-log');
+  const d=document.createElement('div');d.className='log-entry '+(e.event_type||'');
+  const ts=new Date(e.timestamp*1000).toLocaleTimeString('zh-CN');
+  d.innerHTML=`<span class="log-ts">${escHtml(ts)}</span>[${escHtml(e.node_id)}] ${escHtml(e.message)}`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+  // 记录节点历史
+  if(!nodeHistory[e.node_id])nodeHistory[e.node_id]=[];
+  nodeHistory[e.node_id].push({ts:e.timestamp,msg:e.message,state:e.state_snapshot});
+}
+
+// ═══ State ═══
+function updateState(snap){
+  if(!snap)return;
+  const el=document.getElementById('tab-state');
+  const skip=['original_text','full_rewrite'];
+  const labels={paper_title:'论文',current_phase:'阶段',round_num:'轮次',max_rounds:'上限',
+    score:'评分',judge_verdict:'判定',status:'状态',pdf_path:'PDF',outline:'大纲',
+    review_report:'审查',fix_list:'修改',chapter_order:'章节',chapters:'已写'};
+  let h='';
+  for(const[k,v]of Object.entries(snap)){
+    if(skip.includes(k)||v===''||v==null)continue;
+    const l=labels[k]||k;let val=typeof v==='object'?JSON.stringify(v):String(v);
+    if(val.length>150)val=val.slice(0,150)+'…';
+    h+=`<div class="kv-row"><span class="kv-key">${escHtml(l)}</span><span class="kv-val">${escHtml(val)}</span></div>`;
+  }
+  el.innerHTML=h||'<div style="color:var(--dim);text-align:center;padding:20px">暂无数据</div>';
+}
+
+// ═══ Badge ═══
+function setBadge(st){
+  const el=document.getElementById('status-badge');
+  el.className='badge '+st;
+  el.textContent={idle:'空闲',running:'运行中',completed:'已完成',error:'出错',stopped:'已停止'}[st]||st;
+}
+
+// ═══ File Upload ═══
+const fileDrop=document.getElementById('file-drop');
+const fileInput=document.getElementById('file-input');
+fileDrop.onclick=()=>fileInput.click();
+fileDrop.ondragover=e=>{e.preventDefault();fileDrop.classList.add('dragover')};
+fileDrop.ondragleave=()=>fileDrop.classList.remove('dragover');
+fileDrop.ondrop=e=>{e.preventDefault();fileDrop.classList.remove('dragover');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0])};
+fileInput.onchange=()=>{if(fileInput.files.length)handleFile(fileInput.files[0])};
+async function handleFile(f){
+  document.getElementById('file-info').textContent=`上传中: ${f.name}...`;
+  const fd=new FormData();fd.append('file',f);
+  try{
+    const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();
+    if(d.error){document.getElementById('file-info').textContent='❌ '+d.error;return}
+    uploadedText=d.text;
+    document.getElementById('file-info').textContent=`✅ ${d.filename} — ${d.chars}字已提取`;
+    if(!document.getElementById('inp-title').value)document.getElementById('inp-title').value=d.filename.replace(/\.\w+$/,'');
+  }catch(e){document.getElementById('file-info').textContent='❌ 上传失败: '+e.message}
+}
+
+// ═══ URL Fetch ═══
+document.getElementById('btn-fetch-url').onclick=async()=>{
+  const url=document.getElementById('inp-url').value.trim();
+  if(!url)return;
+  document.getElementById('url-info').textContent='抓取中...';
+  try{
+    const r=await fetch('/api/fetch-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await r.json();
+    if(d.error){document.getElementById('url-info').textContent='❌ '+d.error;return}
+    uploadedText=d.text;
+    document.getElementById('url-info').textContent=`✅ 抓取成功 — ${d.chars}字`;
+  }catch(e){document.getElementById('url-info').textContent='❌ '+e.message}
+};
+
+// ═══ SSE ═══
+function startSSE(){
+  if(sseSource)sseSource.close();
+  sseSource=new EventSource('/api/events');
+  ['node_start','node_end','state_update','error','complete','llm_token'].forEach(type=>{
+    sseSource.addEventListener(type,e=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(type==='llm_token'){handleLLMToken(d);return}
+        addLog(d);
+        if(d.node_id)highlightNode(d.node_id);
+        if(d.state_snapshot)updateState(d.state_snapshot);
+        if(type==='complete'){
+          setBadge('completed');stopPolling();
+          document.getElementById('btn-run').disabled=false;document.getElementById('btn-stop').disabled=true;
+          // 显示完成通知
+          const pdfPath=(d.state_snapshot&&d.state_snapshot.pdf_path)||'';
+          const pdfName=pdfPath?pdfPath.split(/[/\\]/).pop():'';
+          showNotify('✅ Pipeline 完成'+(pdfName?` — <a href="/api/output/${encodeURIComponent(pdfName)}" target="_blank" style="color:var(--blue);text-decoration:underline">下载 PDF: ${escHtml(pdfName)}</a>`:''));
+        }
+        if(type==='error'){
+          setBadge('error');
+          document.getElementById('btn-run').disabled=false;document.getElementById('btn-stop').disabled=true;
+          showNotify('❌ Pipeline 出错: '+escHtml(d.message||'未知错误'),'error');
+        }
+      }catch(err){console.error('SSE err:',err)}
+    });
+  });
+  sseSource.onerror=()=>setTimeout(startSSE,3000);
+}
+
+// ═══ Polling ═══
+let pollT=null;
+function startPolling(){pollT=setInterval(async()=>{
+  try{const r=await fetch('/api/status');const d=await r.json();
+    setBadge(d.status);if(d.state)updateState(d.state);
+    if(['completed','error','stopped'].includes(d.status)){stopPolling();document.getElementById('btn-run').disabled=false;document.getElementById('btn-stop').disabled=true}
+  }catch(e){}},2000)}
+function stopPolling(){if(pollT){clearInterval(pollT);pollT=null}}
+
+// ═══ Run/Stop ═══
+document.getElementById('btn-run').onclick=async()=>{
+  let text=uploadedText||document.getElementById('inp-text').value.trim();
+  if(!text){alert('请提供论文原文（粘贴/上传/URL均可）');return}
+  const title=document.getElementById('inp-title').value.trim()||'未命名论文';
+  const audience=document.getElementById('inp-audience').value.trim();
+  const rounds=parseInt(document.getElementById('inp-rounds').value)||3;
+  document.getElementById('btn-run').disabled=true;document.getElementById('btn-stop').disabled=false;
+  document.getElementById('tab-log').innerHTML='';setBadge('running');resetLLMOutput();
+  // 清理旧运行数据
+  for(const k in nodeHistory)delete nodeHistory[k];
+  seenEventTs.clear();
+  startSSE();startPolling();
+  try{
+    const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({paper_title:title,original_text:text,target_audience:audience,max_rounds:rounds})});
+    const d=await r.json();if(!r.ok){alert(d.error||'启动失败');setBadge('idle');document.getElementById('btn-run').disabled=false}
+  }catch(e){alert('请求失败: '+e.message);setBadge('error');document.getElementById('btn-run').disabled=false}
+  // 注意：成功时不重新启用btn-run，等SSE的complete/error事件来启用
+};
+document.getElementById('btn-stop').onclick=async()=>{
+  await fetch('/api/stop',{method:'POST'});
+  document.getElementById('btn-stop').disabled=true;document.getElementById('btn-run').disabled=false;setBadge('stopped');stopPolling();
+};
+
+// ═══ LLM Token Stream ═══
+let llmSegments=[]; // [{type:'reasoning'|'token'|'chapter', text}]
+let currentChapter='';
+const chkReasoning=document.getElementById('chk-reasoning');
+const chkAutoscroll=document.getElementById('chk-autoscroll');
+const llmOutput=document.getElementById('llm-output');
+const llmStatus=document.getElementById('llm-status');
+let tokenCount=0,reasoningCount=0;
+
+let renderPending=false;
+function handleLLMToken(d){
+  const meta=d.metadata||{};
+  const ttype=meta.token_type||'token';
+  const ch=meta.chapter||'';
+  // 章节变化时插入分隔
+  if(ch&&ch!==currentChapter){
+    currentChapter=ch;
+    llmSegments.push({type:'chapter',text:ch});
+  }
+  // 累积token
+  if(llmSegments.length>0&&llmSegments[llmSegments.length-1].type===ttype){
+    llmSegments[llmSegments.length-1].text+=d.message;
+  }else{
+    llmSegments.push({type:ttype,text:d.message});
+  }
+  if(ttype==='token')tokenCount+=d.message.length;
+  else reasoningCount+=d.message.length;
+  llmStatus.textContent=`推理 ${reasoningCount}字 | 正文 ${tokenCount}字`;
+  if(!renderPending){
+    renderPending=true;
+    requestAnimationFrame(()=>{renderPending=false;renderLLMOutput()});
+  }
+}
+
+function renderLLMOutput(){
+  const showReasoning=chkReasoning.checked;
+  let html='';
+  for(const seg of llmSegments){
+    if(seg.type==='chapter'){
+      html+=`<div style="color:var(--yellow);font-weight:600;margin:8px 0 4px;padding:4px 8px;background:rgba(210,150,34,.08);border-radius:4px">▸ ${seg.text}</div>`;
+    }else if(seg.type==='reasoning'){
+      if(showReasoning){
+        html+=`<div style="color:#6e7681;background:rgba(110,118,129,.06);padding:2px 6px;border-left:2px solid #484f58;margin:2px 0;font-style:italic">${escHtml(seg.text)}</div>`;
+      }
+    }else{
+      html+=`<div style="color:var(--text)">${escHtml(seg.text)}</div>`;
+    }
+  }
+  llmOutput.innerHTML=html;
+  if(chkAutoscroll.checked){
+    const tabLlm=document.getElementById('tab-llm');
+    tabLlm.scrollTop=tabLlm.scrollHeight;
+  }
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+chkReasoning.onchange=()=>renderLLMOutput();
+
+function resetLLMOutput(){
+  llmSegments=[];currentChapter='';tokenCount=0;reasoningCount=0;
+  llmOutput.innerHTML='<div style="color:var(--dim);text-align:center;padding:20px">启动Pipeline后在此显示LLM实时输出</div>';
+  llmStatus.textContent='';
+}
+
+// ═══ Init ═══
+initGraph();startSSE();
+// 初始化时用status API设定正确状态（不依赖SSE历史事件）
+fetch('/api/status').then(r=>r.json()).then(d=>{
+  if(d.status&&d.status!=='idle')setBadge(d.status);
+  if(d.state)updateState(d.state);
+}).catch(()=>{});
+</script>
+</body>
+</html>

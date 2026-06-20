@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  paper-rewriter-agent:
+    build: .
+    container_name: paper-rewriter-agent
+    ports:
+      - "8765:8765"
+    environment:
+      - MIMO_API_KEY=${MIMO_API_KEY:-}
+      - MIMO_BASE_URL=${MIMO_BASE_URL:-https://token-plan-cn.xiaomimimo.com/v1}
+      - MIMO_MODEL=${MIMO_MODEL:-mimo-v2.5-pro}
+    volumes:
+      - ./runs:/app/runs
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

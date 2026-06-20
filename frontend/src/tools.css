@@ -1,0 +1,250 @@
+/* ── 工具卡片样式 (深色主题) ── */
+
+.tool-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  transition: all 0.2s;
+}
+
+.tool-card:hover {
+  border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tool-icon { font-size: 16px; }
+
+.tool-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  flex: 1;
+}
+
+.tool-status {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tool-status.complete {
+  background: #065f46;
+  color: #6ee7b7;
+}
+
+.tool-status.running, .tool-status.in_progress {
+  background: #92400e;
+  color: #fcd34d;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.tool-body {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.tool-query {
+  font-family: monospace;
+  background: #0f172a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 4px 0;
+  color: #7dd3fc;
+}
+
+.tool-chapter {
+  font-weight: 500;
+  color: #c4b5fd;
+}
+
+.tool-detail { margin: 4px 0; }
+
+.tool-progress {
+  color: #fbbf24;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* 不同工具类型的颜色 */
+.search-tool { border-left: 3px solid #3b82f6; }
+.read-tool, .read-chapter-tool { border-left: 3px solid #8b5cf6; }
+.write-tool { border-left: 3px solid #10b981; }
+.list-tool { border-left: 3px solid #6366f1; }
+.review-tool { border-left: 3px solid #f59e0b; }
+.outline-tool { border-left: 3px solid #ec4899; }
+
+/* ── CopilotKit深色主题覆盖 ── */
+
+/* 覆盖CopilotKit的白色背景 */
+[data-copilotkit-sidebar],
+[class*="copilotkit"],
+[class*="CopilotKit"] {
+  --copilotkit-bg: #1e293b !important;
+  --copilotkit-text: #e2e8f0 !important;
+  --copilotkit-border: #334155 !important;
+}
+
+/* 侧边栏背景 */
+.copilotkit-sidebar,
+.copilotkit-chat {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* 消息区域 */
+.copilotkit-messages,
+.copilotkit-chat-messages {
+  background: #0f172a !important;
+}
+
+/* 用户消息 */
+.copilotkit-user-message {
+  background: #1e40af !important;
+  color: white !important;
+}
+
+/* 助手消息 */
+.copilotkit-assistant-message {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+/* 输入框 */
+.copilotkit-input,
+.copilotkit-chat-input {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+/* 按钮 */
+.copilotkit-button {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+/* 标题栏 */
+.copilotkit-header,
+.copilotkit-sidebar-header {
+  background: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* ── 论文选择确认 ── */
+
+.paper-selection {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px 0;
+}
+
+.paper-selection h3 {
+  margin-bottom: 12px;
+  color: #e2e8f0;
+}
+
+.paper-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.paper-item {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.paper-item:hover {
+  border-color: #3b82f6;
+}
+
+.paper-item.selected {
+  border-color: #7c3aed;
+  background: #1e1b4b;
+}
+
+.paper-title {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.paper-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.paper-abstract {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.paper-id {
+  font-size: 11px;
+  color: #3b82f6;
+  font-family: monospace;
+}
+
+.paper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-cancel, .btn-confirm {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-cancel {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+.btn-cancel:hover {
+  background: #1c2128;
+}
+
+.btn-confirm {
+  background: #7c3aed;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #6d28d9;
+}
+
+.error-tool {
+  border-left: 3px solid #ef4444;
+}

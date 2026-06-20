@@ -1,15 +1,17 @@
 """论文重写 Agent — FastAPI 服务（AG-UI 版本）
 
-保留原有API + 新增AG-UI端点
+保留原有API + 新增AG-UI端点 + 图结构端点 + pipeline事件桥接
 
 API:
-  POST /api/run          — 启动一次论文重写（原有）
-  GET  /api/status       — 当前运行状态（原有）
-  GET  /api/events       — SSE事件流（原有）
-  POST /api/stop         — 停止当前运行（原有）
-  GET  /api/runs         — 历史run列表（原有）
-  GET  /api/run/{id}     — 某次run的详情（原有）
-  POST /api/copilotkit   — AG-UI端点（新增）
+  POST /api/run          — 启动一次论文重写
+  GET  /api/status       — 当前运行状态
+  GET  /api/events       — SSE事件流
+  POST /api/stop         — 停止当前运行
+  GET  /api/runs         — 历史run列表
+  GET  /api/run/{id}     — 某次run的详情
+  GET  /api/graph        — 流水线图结构（节点+边）
+  GET  /api/event-log    — AG-UI事件日志（供Dashboard轮询）
+  POST /api/copilotkit   — AG-UI端点
 """
 import asyncio
 import json
@@ -30,7 +32,6 @@ from .state import RunState
 from .graph import build_agent_graph
 
 # AG-UI imports
-from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from ag_ui_langgraph import LangGraphAgent, add_langgraph_fastapi_endpoint
 
@@ -84,6 +85,52 @@ async def broadcast(event_type: str, data: dict):
         current_run["state"].log_event(event_type, data)
 
 
+# ── Pipeline事件桥接 ──
+# 订阅pipeline.events.emitter，转发到agent event_log + SSE
+_pipeline_subscribed = False
+
+def _setup_pipeline_bridge():
+    """桥接pipeline事件到前端（只注册一次）"""
+    global _pipeline_subscribed
+    if _pipeline_subscribed:
+        return
+    _pipeline_subscribed = True
+
+    from pipeline.events import emitter
+    from .event_log import log_event
+
+    queue = emitter.subscribe()
+
+    async def _forward():
+        while True:
+            try:
+                evt = await asyncio.wait_for(queue.get(), timeout=1.0)
+                # 转为agent event_log格式
+                log_event(evt.event_type, {
+                    "node_id": evt.node_id,
+                    "message": evt.message,
+                    "state_snapshot": evt.state_snapshot,
+                    "metadata": evt.metadata,
+                    "timestamp": evt.timestamp,
+                })
+                # 也广播到SSE
+                for q in _event_queues:
+                    await q.put({
+                        "type": evt.event_type,
+                        "ts": evt.timestamp,
+                        "node_id": evt.node_id,
+                        "message": evt.message,
+                        "state_snapshot": evt.state_snapshot,
+                        "metadata": evt.metadata,
+                    })
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                await asyncio.sleep(1)
+
+    asyncio.ensure_future(_forward())
+
+
 # ── Agent运行 ──
 
 async def run_agent(req: RunRequest, run_id: str):
@@ -99,6 +146,10 @@ async def run_agent(req: RunRequest, run_id: str):
         current_run["started_at"] = time.time()
         current_run["run_id"] = run_id
         current_run["state"] = RunState(run_id)
+
+        # 设置pipeline事件循环（供emit_sync使用）
+        from pipeline.events import emitter
+        emitter.set_loop(asyncio.get_event_loop())
 
         await broadcast("run_start", {"run_id": run_id, "title": req.paper_title})
 
@@ -124,6 +175,42 @@ async def run_agent(req: RunRequest, run_id: str):
         current_run["error"] = str(e)
         current_run["ended_at"] = time.time()
         await broadcast("run_error", {"run_id": run_id, "error": str(e)})
+
+
+# ── 图结构端点 ──
+
+PIPELINE_GRAPH = {
+    "nodes": [
+        {"id": "outline_generator", "label": "大纲生成", "type": "process",
+         "description": "分析原文，生成章节大纲"},
+        {"id": "writer", "label": "章节写作", "type": "process",
+         "description": "逐章写作，微分-积分方法展开"},
+        {"id": "reviewer", "label": "质量审查", "type": "process",
+         "description": "对比原文，评分内容质量"},
+        {"id": "fact_checker", "label": "事实核查", "type": "process",
+         "description": "检查重写是否忠于原文"},
+        {"id": "judge", "label": "裁判判定", "type": "decision",
+         "description": "综合评分，PASS/FAIL"},
+        {"id": "pdf_generator", "label": "PDF生成", "type": "end",
+         "description": "生成最终PDF文件"},
+    ],
+    "edges": [
+        {"from": "__start__", "to": "outline_generator", "label": ""},
+        {"from": "outline_generator", "to": "writer", "label": "大纲完成"},
+        {"from": "writer", "to": "reviewer", "label": "写作完成"},
+        {"from": "reviewer", "to": "fact_checker", "label": "审查完成"},
+        {"from": "fact_checker", "to": "judge", "label": "核查完成"},
+        {"from": "judge", "to": "writer", "label": "FAIL: 重写"},
+        {"from": "judge", "to": "pdf_generator", "label": "PASS"},
+        {"from": "pdf_generator", "to": "__end__", "label": ""},
+    ],
+}
+
+
+@app.get("/api/graph")
+async def get_graph():
+    """返回流水线图结构"""
+    return PIPELINE_GRAPH
 
 
 # ── 原有API端点 ──
@@ -243,7 +330,6 @@ async def get_run(run_id: str):
 # 创建AG-UI agent（AsyncSqliteSaver for persistence）
 import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-import os
 
 _db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints.db")
 _checkpointer = None
@@ -252,9 +338,13 @@ _agui_agent = None
 @app.on_event("startup")
 async def init_checkpointer():
     global _checkpointer, _agui_agent
+
+    # 桥接pipeline事件
+    _setup_pipeline_bridge()
+
     conn = await aiosqlite.connect(_db_path)
     _checkpointer = AsyncSqliteSaver(conn)
-    
+
     graph = build_agent_graph(checkpointer=_checkpointer)
     _agui_agent = LangGraphAgent(
         config={"recursion_limit": 500},

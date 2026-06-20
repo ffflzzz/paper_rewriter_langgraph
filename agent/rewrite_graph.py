@@ -125,7 +125,7 @@ def outline_node(state: RewriteState) -> dict:
     original_chars = len(original)
     chapter_count = len(chapter_order)
     if chapter_count > 0:
-        # 扩展系数1.5，不设上限（LLM单次max_tokens=16384约能写10000-12000中文字）
+        # 扩展系数1.5，下限5000字（实际长度由reviewer反馈驱动）
         target_chars = int(original_chars / chapter_count * 1.5)
         target_chars = max(target_chars, 5000)
     else:
@@ -178,7 +178,19 @@ def writer_node(state: RewriteState) -> dict:
     # 如果有审查反馈，加入提示
     review_hint = ""
     if retry > 0 and state.get("current_chapter_review"):
-        review_hint = f"""
+        try:
+            review_data = json.loads(state["current_chapter_review"])
+            fixes = []
+            for issue in review_data.get("issues", []):
+                if isinstance(issue, dict):
+                    fixes.append(f"- 【{issue.get('location', '?')}】{issue.get('problem', '')} → {issue.get('fix', '')}")
+            for m in review_data.get("missing", []):
+                if isinstance(m, dict):
+                    fixes.append(f"- 【遗漏】{m.get('concept', '')} — {m.get('suggestion', '')}")
+            if fixes:
+                review_hint = "\n\n上一轮审查反馈（请据此改进）：\n" + "\n".join(fixes)
+        except (json.JSONDecodeError, TypeError):
+            review_hint = f"""
 
 上一轮审查反馈（请据此改进）：
 {state['current_chapter_review'][:1000]}"""
@@ -190,12 +202,12 @@ def writer_node(state: RewriteState) -> dict:
 
 写作规则（严格遵守）：
 - 中文输出，术语首次出现时括号注英文原文
-- 每个原文句子展开为3-5句，充分展开不要压缩
+- 充分展开每个概念，不要压缩。用微分-积分方法逐层拆解
 - 纯散文体，禁止使用任何markdown符号（#、*、**、-、|、>、```等）
 - 段落之间空一行即可，不要加标题标记
 - 短句为主，一句话一个概念
 - 不用"换言之""显然""易知"等学术衔接词
-- 行文流畅自然，像在跟朋友聊天一样解释概念
+- 行文流畅自然，像跟朋友聊天一样解释概念
 - 微积分标准：每个概念拆解到目标读者能独立理解就停止展开，不要注水也不要压缩
 - 覆盖本章大纲中的所有要点，每个要点都要充分展开
 - 本章目标字数：至少{target}字。这是硬性要求，必须写够。如果写到一半发现不够，继续展开更多细节和例子
@@ -254,7 +266,12 @@ def writer_node(state: RewriteState) -> dict:
 相关原文片段：
 {context[:20000]}
 
-请继续扩展这一章的内容。在已写内容的基础上，补充更多细节、例子和解释。不要重复已有内容，只写新增部分。目标再增加{target // max_rounds}字。"""
+请继续扩展这一章的内容。要求：
+1. 不要重复已有内容，只写新增部分
+2. 为已有的概念补充更多具体例子和类比
+3. 对重要公式或定理展开逐步推导
+4. 补充原文中提到但重写遗漏的细节
+5. 目标再增加{target // max_rounds}字"""
             
             section = _llm(system, user, temperature=0.7, max_tokens=16384)
             sections.append(section)
@@ -305,16 +322,22 @@ def reviewer_node(state: RewriteState) -> dict:
             ref_parts.append(result)
     ref_text = "\n\n".join(ref_parts)
 
-    system = """你是论文重写审查员。对比原文和重写章节，输出JSON评分。
-检查：概念覆盖率、技术准确性、行文质量、概念拆解深度（微积分方法是否到位——每个概念是否拆解到目标读者能理解的程度）。
+    system = """你是论文重写审查员。逐段对比原文和重写章节，输出具体的改进建议。
+
+审查重点：
+1. 原文中有哪些段落/概念在重写中被跳过或一笔带过？列出具体位置
+2. 哪些概念的拆解深度不够？目标读者（大一非理工科）能否理解？
+3. 重写是否添加了原文没有的内容（幻觉）？
+4. 行文是否流畅？有没有生硬的过渡？
+
 输出JSON：
 {
   "score": 0-10,
-  "coverage": "概念覆盖率评估",
+  "coverage": "概念覆盖率评估（具体列出遗漏的段落/概念）",
   "quality": "行文质量评估",
-  "decomposition": "概念拆解深度评估——是否每个概念都拆到读者能理解",
-  "issues": ["问题列表"],
-  "missing": ["遗漏的关键概念"],
+  "decomposition": "概念拆解深度评估",
+  "issues": [{"location": "第几段/哪个概念", "problem": "具体问题", "fix": "如何改进"}],
+  "missing": [{"concept": "遗漏的概念", "original_ref": "原文中的位置/上下文", "suggestion": "建议如何展开"}],
   "verdict": "PASS/FAIL"
 }
 PASS标准：score>=7 且无重大遗漏。"""
@@ -408,9 +431,30 @@ def judge_node(state: RewriteState) -> dict:
     score = state.get("current_chapter_score", 0)
     retry = state.get("chapter_retry_count", 0)
     max_retries = state.get("max_retries", 2)
+    review_report = state.get("current_chapter_review", "")
+    factcheck_report = state.get("current_chapter_factcheck", "")
     _log(f"judge_node: {ch_id}, score={score}, retry={retry}, chars={len(content)}")
 
-    # 判定逻辑：纯靠质量分，不看字数
+    # 解析reviewer的结构化反馈
+    fix_list = []
+    try:
+        review_data = json.loads(review_report) if review_report else {}
+        # 从issues提取具体修改项
+        for issue in review_data.get("issues", []):
+            if isinstance(issue, dict):
+                fix_list.append(f"【{issue.get('location', '?')}】{issue.get('problem', '')} → {issue.get('fix', '')}")
+            else:
+                fix_list.append(str(issue))
+        # 从missing提取遗漏概念
+        for m in review_data.get("missing", []):
+            if isinstance(m, dict):
+                fix_list.append(f"【遗漏】{m.get('concept', '')} — {m.get('suggestion', '')}")
+            else:
+                fix_list.append(f"【遗漏】{m}")
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # 判定逻辑
     pass_score = 7.0
     low_score = score < pass_score
     can_retry = retry < max_retries
@@ -420,6 +464,7 @@ def judge_node(state: RewriteState) -> dict:
         _log(f"judge_node {ch_id}: RETRY ({', '.join(reason)})")
         return {
             "chapter_retry_count": retry + 1,
+            "current_chapter_review": review_report,  # 保留review供writer参考
             "phase": "writing",  # 回到writer
         }
     else:

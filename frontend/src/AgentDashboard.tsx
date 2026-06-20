@@ -26,89 +26,171 @@ interface AgentState {
   events: AGUIEvent[];
 }
 
-// ── 图结构面板 ──
+// ── Pipeline图结构面板（vis.js） ──
 
-function GraphPanel({ state }: { state: AgentState }) {
-  const { status, currentNode, toolCalls } = state;
-  const isRunning = status === 'running';
-  const activeTool = toolCalls.find(tc => tc.status === 'running');
+function PipelineGraphPanel({ activeNode, nodeHistory }: {
+  activeNode: string | null;
+  nodeHistory: Record<string, { count: number; lastMsg: string }>;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const networkRef = useRef<any>(null);
+  const nodesRef = useRef<any>(null);
+  const edgesRef = useRef<any>(null);
 
-  const nodeClass = (name: string) => {
-    if (!isRunning) return 'graph-node idle';
-    if (currentNode === name || (name === 'tools' && activeTool)) return 'graph-node active';
-    return 'graph-node idle';
-  };
+  // 初始化vis.js图
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // 动态加载vis.js
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js';
+    script.onload = () => {
+      const vis = (window as any).vis;
+      if (!vis || !containerRef.current) return;
+
+      const nodeDefs = [
+        { id: '__start__', label: '开始', type: 'start' },
+        { id: 'outline_generator', label: '大纲生成', type: 'process' },
+        { id: 'writer', label: '章节写作', type: 'process' },
+        { id: 'reviewer', label: '质量审查', type: 'process' },
+        { id: 'fact_checker', label: '事实核查', type: 'process' },
+        { id: 'judge', label: '裁判判定', type: 'decision' },
+        { id: 'pdf_generator', label: 'PDF生成', type: 'end' },
+        { id: '__end__', label: '结束', type: 'end' },
+      ];
+
+      const COLORS: Record<string, { background: string; border: string }> = {
+        start: { background: '#1a3a2a', border: '#3fb950' },
+        process: { background: '#1a2a3a', border: '#58a6ff' },
+        decision: { background: '#3a2a1a', border: '#d29922' },
+        end: { background: '#2a1a1a', border: '#f85149' },
+      };
+
+      const nodes = new vis.DataSet(nodeDefs.map(n => ({
+        id: n.id,
+        label: n.label,
+        shape: n.id === '__start__' || n.id === '__end__' ? 'dot' : 'box',
+        size: n.id === '__start__' || n.id === '__end__' ? 16 : undefined,
+        margin: 14,
+        font: { color: '#e6e6e6', size: 13 },
+        color: COLORS[n.type] || COLORS.process,
+        borderWidth: 2,
+        borderRadius: 6,
+      })));
+
+      const edgeDefs = [
+        { from: '__start__', to: 'outline_generator', label: '' },
+        { from: 'outline_generator', to: 'writer', label: '大纲完成' },
+        { from: 'writer', to: 'reviewer', label: '写作完成' },
+        { from: 'reviewer', to: 'fact_checker', label: '审查完成' },
+        { from: 'fact_checker', to: 'judge', label: '核查完成' },
+        { from: 'judge', to: 'writer', label: 'FAIL: 重写' },
+        { from: 'judge', to: 'pdf_generator', label: 'PASS' },
+        { from: 'pdf_generator', to: '__end__', label: '' },
+      ];
+
+      const edges = new vis.DataSet(edgeDefs.map(e => ({
+        from: e.from,
+        to: e.to,
+        label: e.label,
+        arrows: 'to',
+        font: { color: '#8b949e', size: 10, strokeWidth: 0 },
+        color: { color: '#484f58', highlight: '#58a6ff', inherit: 'both' },
+        smooth: { type: 'cubicBezier' },
+        width: 1.5,
+      })));
+
+      nodesRef.current = nodes;
+      edgesRef.current = edges;
+
+      networkRef.current = new vis.Network(containerRef.current, { nodes, edges }, {
+        physics: false,
+        interaction: { dragNodes: false, zoomView: true, dragView: true },
+        layout: { improvedLayout: true },
+      });
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+    };
+  }, []);
+
+  // 高亮活跃节点
+  useEffect(() => {
+    const nodes = nodesRef.current;
+    const network = networkRef.current;
+    if (!nodes || !network) return;
+
+    // 重置所有节点样式
+    const allNodes = nodes.getIds();
+    for (const nid of allNodes) {
+      const hist = nodeHistory[nid];
+      const execLabel = hist && hist.count > 0 ? ` (${hist.count}次)` : '';
+      const origNode = [
+        { id: '__start__', label: '开始' },
+        { id: 'outline_generator', label: '大纲生成' },
+        { id: 'writer', label: '章节写作' },
+        { id: 'reviewer', label: '质量审查' },
+        { id: 'fact_checker', label: '事实核查' },
+        { id: 'judge', label: '裁判判定' },
+        { id: 'pdf_generator', label: 'PDF生成' },
+        { id: '__end__', label: '结束' },
+      ].find(n => n.id === nid);
+
+      nodes.update({
+        id: nid,
+        borderWidth: 2,
+        shadow: { enabled: false },
+        label: (origNode?.label || nid) + execLabel,
+      });
+    }
+
+    // 高亮活跃节点
+    if (activeNode && nodes.get(activeNode)) {
+      nodes.update({
+        id: activeNode,
+        borderWidth: 4,
+        shadow: { enabled: true, color: 'rgba(88,166,255,0.8)', size: 20 },
+      });
+      network.selectNodes([activeNode]);
+      network.focus(activeNode, {
+        scale: 1.2,
+        animation: { duration: 500, easingFunction: 'easeInOutQuad' },
+      });
+    }
+  }, [activeNode, nodeHistory]);
 
   return (
-    <div className="graph-panel">
-      <h3 className="graph-title">📊 Agent 流水线</h3>
-      
-      <div className="pipeline">
-        <div className={`pipeline-node start ${isRunning ? 'active' : ''}`}>
-          <span className="node-icon">▶</span>
-          <span className="node-label">START</span>
-        </div>
-        <div className={`pipeline-arrow ${isRunning ? 'flowing' : ''}`} />
+    <div className="pipeline-graph-container">
+      <div ref={containerRef} style={{ width: '100%', height: '280px', background: '#0d1117', borderRadius: '8px' }} />
+    </div>
+  );
+}
 
-        <div className={nodeClass('agent')}>
-          <span className="node-icon">🤖</span>
-          <span className="node-label">Agent</span>
-          <span className="node-detail">MiMo v2.5 Pro</span>
-          {currentNode === 'agent' && isRunning && <span className="pulse" />}
-        </div>
-        <div className={`pipeline-arrow ${activeTool ? 'flowing' : ''}`} />
+// ── 节点详情面板 ──
 
-        <div className={nodeClass('tools')}>
-          <span className="node-icon">🔧</span>
-          <span className="node-label">Tools</span>
-          <span className="node-detail">
-            {activeTool ? activeTool.name : toolCalls.length > 0 ? `${toolCalls.length} 次调用` : '9 个工具'}
-          </span>
-          {activeTool && <span className="pulse" />}
-        </div>
-      </div>
-
-      {/* 当前工具调用详情 */}
-      {activeTool && (
-        <div className="active-tool-card">
-          <div className="tool-card-header">
-            <span className="tool-card-icon">⚡</span>
-            <span className="tool-card-name">{activeTool.name}</span>
-            <span className="tool-card-status running">执行中...</span>
-          </div>
-          {activeTool.args && (
-            <pre className="tool-card-args">{JSON.stringify(activeTool.args, null, 2)}</pre>
-          )}
-        </div>
-      )}
-
-      {/* 工具调用历史 */}
-      {toolCalls.length > 0 && (
-        <div className="tool-history">
-          <h4>调用记录</h4>
-          {toolCalls.slice(-5).map(tc => (
-            <div key={tc.id} className={`tool-history-item ${tc.status}`}>
-              <span className="tool-history-icon">
-                {tc.status === 'running' ? '🔄' : tc.status === 'complete' ? '✅' : '❌'}
-              </span>
-              <span className="tool-history-name">{tc.name}</span>
-              {tc.endTime && (
-                <span className="tool-history-time">{((tc.endTime - tc.startTime) / 1000).toFixed(1)}s</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 状态指示 */}
-      <div className="graph-status">
-        <span className={`status-dot ${status}`} />
-        <span className="status-text">
-          {status === 'idle' && '等待任务'}
-          {status === 'running' && '执行中...'}
-          {status === 'complete' && '已完成'}
-          {status === 'error' && '出错'}
-        </span>
+function NodeDetailPanel({ nodeId, nodeHistory }: {
+  nodeId: string | null;
+  nodeHistory: Record<string, { count: number; lastMsg: string; messages: string[] }>;
+}) {
+  if (!nodeId) {
+    return <div className="node-detail-empty">点击图中节点查看详情</div>;
+  }
+  const hist = nodeHistory[nodeId];
+  if (!hist || hist.count === 0) {
+    return <div className="node-detail-empty">节点 [{nodeId}] — 尚未执行</div>;
+  }
+  return (
+    <div className="node-detail-panel">
+      <div className="node-detail-title">节点 [{nodeId}] — 执行 {hist.count} 次</div>
+      <div className="node-detail-messages">
+        {hist.messages.slice(-5).map((msg, i) => (
+          <div key={i} className="node-detail-msg">{msg}</div>
+        ))}
       </div>
     </div>
   );
@@ -118,11 +200,10 @@ function GraphPanel({ state }: { state: AgentState }) {
 
 function extractToolCalls(events: AGUIEvent[]): ToolCall[] {
   const toolCalls: Map<string, ToolCall> = new Map();
-  
+
   for (const evt of events) {
     const d = evt.data;
-    
-    // AG-UI TOOL_CALL_START
+
     if (d.type === 'TOOL_CALL_START') {
       toolCalls.set(d.toolCallId || evt.timestamp.toString(), {
         id: d.toolCallId || evt.timestamp.toString(),
@@ -132,8 +213,7 @@ function extractToolCalls(events: AGUIEvent[]): ToolCall[] {
         startTime: evt.timestamp,
       });
     }
-    
-    // AG-UI TOOL_CALL_END
+
     if (d.type === 'TOOL_CALL_END') {
       const id = d.toolCallId || '';
       if (toolCalls.has(id)) {
@@ -143,8 +223,7 @@ function extractToolCalls(events: AGUIEvent[]): ToolCall[] {
         tc.result = d.result;
       }
     }
-    
-    // RAW事件中的LangGraph tool调用（on_tool_start / on_tool_end）
+
     if (d.type === 'RAW' && d.event) {
       const raw = d.event;
       if (raw.event === 'on_tool_start') {
@@ -169,31 +248,26 @@ function extractToolCalls(events: AGUIEvent[]): ToolCall[] {
       }
     }
   }
-  
+
   return Array.from(toolCalls.values());
 }
 
-// ── 从AG-UI事件中提取当前节点 ──
+// ── 从事件中提取当前活跃的agent节点 ──
 
-function extractCurrentNode(events: AGUIEvent[]): string | null {
-  // 从后往前找最近的STEP事件
+function extractActiveNode(events: AGUIEvent[]): string | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const d = events[i].data;
-    if (d.type === 'STEP_STARTED') return d.stepName || 'agent';
-    if (d.type === 'STEP_FINISHED') return null;
-    if (d.type === 'RUN_STARTED') return 'agent';
-    if (d.type === 'RUN_FINISHED' || d.type === 'RUN_ERROR') return null;
-    
-    // RAW事件中的LangGraph节点信息
-    if (d.type === 'RAW' && d.event) {
-      const raw = d.event;
-      if (raw.event === 'on_chain_start' && raw.name !== 'LangGraph') {
-        return raw.name;
-      }
-    }
+    // pipeline事件格式
+    if (d.type === 'node_start' && d.node_id) return d.node_id;
+    if (d.type === 'node_end') continue; // node_end不设高亮，等下一个node_start
+    // AG-UI格式
+    if (d.type === 'STEP_STARTED' && d.stepName) return d.stepName;
+    if (d.type === 'RUN_STARTED') return 'outline_generator';
   }
   return null;
 }
+
+// ── 构建节点执行历史 ──
 
 // ── AgentDashboard ──
 
@@ -205,6 +279,7 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
     events: [],
   });
   const [isConnected, setIsConnected] = useState(false);
+  const [nodeHistory, setNodeHistory] = useState<Record<string, { count: number; lastMsg: string; messages: string[] }>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPollRef = useRef<number>(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -225,22 +300,47 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
                 type: e.type,
                 timestamp: e.timestamp * 1000,
                 data: e.data,
-              }))].slice(-200);
-              
+              }))].slice(-500);
+
               let newStatus = prev.status;
               for (const evt of newEvents) {
-                if (evt.type === 'RUN_STARTED') newStatus = 'running';
-                else if (evt.type === 'RUN_FINISHED') newStatus = 'complete';
-                else if (evt.type === 'RUN_ERROR') newStatus = 'error';
+                if (evt.type === 'RUN_STARTED' || evt.type === 'run_start') newStatus = 'running';
+                else if (evt.type === 'RUN_FINISHED' || evt.type === 'run_end') newStatus = 'complete';
+                else if (evt.type === 'RUN_ERROR' || evt.type === 'run_error') newStatus = 'error';
               }
 
               return {
                 ...prev,
                 status: newStatus,
-                currentNode: extractCurrentNode(allEvents),
+                currentNode: extractActiveNode(allEvents),
                 toolCalls: extractToolCalls(allEvents),
                 events: allEvents,
               };
+            });
+
+            // 更新节点历史
+            setNodeHistory(prev => {
+              const updated = { ...prev };
+              for (const evt of newEvents) {
+                const d = evt.data;
+                const nodeId = d.node_id || d.stepName;
+                if (!nodeId) continue;
+                if (!updated[nodeId]) {
+                  updated[nodeId] = { count: 0, lastMsg: '', messages: [] };
+                }
+                if (d.type === 'node_start' || d.type === 'STEP_STARTED') {
+                  updated[nodeId].count++;
+                  updated[nodeId].lastMsg = d.message || '';
+                  updated[nodeId].messages.push(d.message || '开始执行');
+                }
+                if (d.type === 'node_end' || d.type === 'STEP_FINISHED') {
+                  updated[nodeId].messages.push(d.message || '执行完成');
+                }
+                if (d.type === 'state_update') {
+                  updated[nodeId].messages.push(d.message || '');
+                }
+              }
+              return updated;
             });
           }
           setIsConnected(true);
@@ -252,14 +352,15 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
 
     pollEvents();
     pollIntervalRef.current = setInterval(pollEvents, 1500);
-    
+
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [runtimeUrl]);
 
   const clearEvents = () => {
-    setState(prev => ({ ...prev, events: [], toolCalls: [] }));
+    setState(prev => ({ ...prev, events: [], toolCalls: [], currentNode: null }));
+    setNodeHistory({});
   };
 
   useEffect(() => {
@@ -280,8 +381,42 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
         </div>
       </div>
 
-      <GraphPanel state={state} />
+      {/* Agent 图结构 */}
+      <PipelineGraphPanel activeNode={state.currentNode} nodeHistory={nodeHistory} />
 
+      {/* 节点详情 */}
+      <NodeDetailPanel nodeId={state.currentNode} nodeHistory={nodeHistory} />
+
+      {/* 状态指示 */}
+      <div className="graph-status">
+        <span className={`status-dot ${state.status}`} />
+        <span className="status-text">
+          {state.status === 'idle' && '等待任务'}
+          {state.status === 'running' && `执行中... 当前节点: ${state.currentNode || '-'}`}
+          {state.status === 'complete' && '已完成'}
+          {state.status === 'error' && '出错'}
+        </span>
+      </div>
+
+      {/* 工具调用记录 */}
+      {state.toolCalls.length > 0 && (
+        <div className="tool-history">
+          <h4>🔧 工具调用 ({state.toolCalls.length})</h4>
+          {state.toolCalls.slice(-8).map(tc => (
+            <div key={tc.id} className={`tool-history-item ${tc.status}`}>
+              <span className="tool-history-icon">
+                {tc.status === 'running' ? '🔄' : tc.status === 'complete' ? '✅' : '❌'}
+              </span>
+              <span className="tool-history-name">{tc.name}</span>
+              {tc.endTime && (
+                <span className="tool-history-time">{((tc.endTime - tc.startTime) / 1000).toFixed(1)}s</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 事件流 */}
       <div className="events-section" ref={containerRef}>
         <h4>📡 事件流 ({state.events.length})</h4>
         <div className="events-list">
@@ -290,12 +425,13 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
               {isConnected ? '等待事件...' : '未连接'}
             </div>
           ) : (
-            state.events.slice(-20).map((event, i) => (
-              <div key={i} className={`event-item ${event.type}`}>
+            state.events.slice(-30).map((event, i) => (
+              <div key={i} className={`event-item ${event.data?.type || event.type}`}>
                 <span className="event-time">
                   {new Date(event.timestamp).toLocaleTimeString()}
                 </span>
-                <span className="event-type">{event.type}</span>
+                <span className="event-type">{event.data?.node_id || event.data?.type || event.type}</span>
+                <span className="event-msg">{event.data?.message || ''}</span>
               </div>
             ))
           )}

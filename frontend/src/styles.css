@@ -1480,3 +1480,90 @@ body {
 .pdf-download-btn:hover {
   background: #3fb950;
 }
+
+/* ── Pipeline Graph ── */
+
+.pipeline-graph-container {
+  margin: var(--spacing-md, 12px) 0;
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: var(--radius-lg, 8px);
+  overflow: hidden;
+}
+
+.node-detail-panel {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  background: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: var(--radius-md, 6px);
+  margin: var(--spacing-sm, 8px) 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.node-detail-empty {
+  padding: var(--spacing-md, 12px);
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+  font-size: 13px;
+}
+
+.node-detail-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warning, #f59e0b);
+  margin-bottom: var(--spacing-xs, 4px);
+}
+
+.node-detail-messages {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+  line-height: 1.5;
+}
+
+.node-detail-msg {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.graph-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.idle { background: var(--text-muted, #6b7280); }
+.status-dot.running { background: var(--success, #10b981); animation: pulse 1.5s infinite; }
+.status-dot.complete { background: var(--info, #3b82f6); }
+.status-dot.error { background: var(--error, #ef4444); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.event-msg {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-left: var(--spacing-sm, 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.event-item.node_start { color: #d2a8ff; background: rgba(210,168,255,.06); }
+.event-item.node_end { color: #3fb950; background: rgba(63,185,80,.06); }
+.event-item.state_update { color: #58a6ff; background: rgba(88,166,255,.06); }
+.event-item.run_start { color: #3fb950; font-weight: 600; }
+.event-item.run_end { color: #58a6ff; font-weight: 600; }
+.event-item.run_error { color: #f85149; font-weight: 600; }

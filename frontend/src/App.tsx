@@ -5,8 +5,8 @@ import { CopilotSidebar } from "@copilotkit/react-ui";
 import { AgentDashboard } from "./AgentDashboard";
 import { SessionSidebar } from "./SessionSidebar";
 
-// ── 直连AG-UI端点（绕过CopilotKit Runtime） ──
-const AGUI_URL = `${window.location.origin}/pr/api/copilotkit`;
+// CopilotKit Runtime (端口8766) — 标准CopilotKit协议
+const RUNTIME_URL = `${window.location.origin}/pr-rt/api/copilotkit`;
 
 function getOrCreateThreadId(): string {
   const stored = localStorage.getItem('paper_rewriter_thread_id');
@@ -49,14 +49,14 @@ function App() {
         onNewThread={handleNewThread}
       />
       <CopilotKit
-        runtimeUrl={AGUI_URL}
+        runtimeUrl={RUNTIME_URL}
         agent="paper_rewriter"
         threadId={threadId}
       >
         <div className="app-layout">
           <main className="main-content">
             <div className="dashboard-container">
-              <AgentDashboard runtimeUrl={AGUI_URL} />
+              <AgentDashboard runtimeUrl={RUNTIME_URL} />
             </div>
           </main>
           <CopilotSidebar

@@ -57,7 +57,7 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
     if (!containerRef.current || !graphData) return;
 
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js';
+    script.src = '/pr/vis-network.min.js';
     script.onload = () => {
       const vis = (window as any).vis;
       if (!vis || !containerRef.current) return;

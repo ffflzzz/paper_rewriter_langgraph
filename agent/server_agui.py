@@ -44,6 +44,10 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# GZip压缩（vis.js等大文件通过CF Tunnel需要压缩）
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # ── 状态 ──
 RUNS_DIR = Path(__file__).parent.parent / "runs"
 RUNS_DIR.mkdir(exist_ok=True)

@@ -406,12 +406,12 @@ async def init_checkpointer():
         """AG-UI端点 — 兼容CopilotKit Runtime和直连两种格式"""
         body = await request.json()
 
-        # CopilotKit Runtime格式: {method, params, body}
-        if "method" in body and "body" in body:
-            inner = body["body"]
-            # 从params取agentId（如果需要）
+        # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
+        # 直连AG-UI格式: {threadId, runId, state, messages, ...}
+        if "method" in body:
+            # 去掉method/params，剩下的就是RunAgentInput字段
+            inner = {k: v for k, v in body.items() if k not in ("method", "params")}
         else:
-            # 直连AG-UI格式: {threadId, runId, state, messages, ...}
             inner = body
 
         # 补state默认值

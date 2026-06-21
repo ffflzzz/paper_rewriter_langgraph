@@ -1667,3 +1667,81 @@ body {
 .chat-send-btn:hover:not(:disabled) {
   background: var(--accent-hover, #6d28d9);
 }
+
+/* ── Enhanced Graph ── */
+.pipeline-graph-section {
+  margin: var(--spacing-md, 12px) 0;
+}
+
+.pipeline-graph-container {
+  height: 320px;
+  background: #0d1117;
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: var(--radius-lg, 8px);
+  overflow: hidden;
+}
+
+.graph-node-info {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  background: var(--bg-tertiary, #334155);
+  border-radius: var(--radius-md, 6px);
+  margin-top: var(--spacing-xs, 4px);
+}
+
+.graph-node-info-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warning, #f59e0b);
+}
+
+.graph-node-info-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 2px;
+}
+
+.graph-node-info-stat {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 4px;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── Chat Tool Calls ── */
+.chat-tools {
+  padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 4px);
+}
+
+.chat-tool {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+}
+
+.chat-tool.running {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+}
+
+.chat-tool.done {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+
+/* ── Chat Message Tool ── */
+.chat-msg.tool {
+  align-self: flex-start;
+  background: rgba(210, 168, 255, 0.08);
+  color: #d2a8ff;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  max-width: 90%;
+  border-bottom-left-radius: 4px;
+  padding: 6px 10px;
+}

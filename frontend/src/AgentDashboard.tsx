@@ -26,7 +26,38 @@ interface AgentState {
   events: AGUIEvent[];
 }
 
-// ── Pipeline图结构面板（vis.js） ──
+// ── 节点定义 ──
+
+const NODE_DEFS = [
+  { id: '__start__', label: '▶ 开始', type: 'start', desc: '接收论文原文和标题' },
+  { id: 'outline_generator', label: '📋 大纲生成', type: 'process', desc: '分析原文结构，生成章节大纲' },
+  { id: 'writer', label: '✍️ 章节写作', type: 'process', desc: '逐章写作，微分-积分方法展开概念' },
+  { id: 'reviewer', label: '🔍 质量审查', type: 'process', desc: '对比原文，检查覆盖率和行文质量' },
+  { id: 'fact_checker', label: '✅ 事实核查', type: 'process', desc: '检查重写是否忠于原文，有无幻觉' },
+  { id: 'judge', label: '⚖️ 裁判判定', type: 'decision', desc: '综合评分≥7通过，否则返回重写' },
+  { id: 'pdf_generator', label: '📄 PDF生成', type: 'end', desc: '生成最终PDF文件' },
+  { id: '__end__', label: '⏹ 结束', type: 'end', desc: '任务完成' },
+];
+
+const EDGE_DEFS = [
+  { from: '__start__', to: 'outline_generator', label: '' },
+  { from: 'outline_generator', to: 'writer', label: '大纲完成' },
+  { from: 'writer', to: 'reviewer', label: '写作完成' },
+  { from: 'reviewer', to: 'fact_checker', label: '审查完成' },
+  { from: 'fact_checker', to: 'judge', label: '核查完成' },
+  { from: 'judge', to: 'writer', label: 'FAIL → 重写', color: '#f85149' },
+  { from: 'judge', to: 'pdf_generator', label: 'PASS → 生成', color: '#3fb950' },
+  { from: 'pdf_generator', to: '__end__', label: '' },
+];
+
+const COLORS: Record<string, { background: string; border: string; highlight: { background: string; border: string } }> = {
+  start: { background: '#1a3a2a', border: '#3fb950', highlight: { background: '#2a5a3a', border: '#5fd97f' } },
+  process: { background: '#1a2a3a', border: '#58a6ff', highlight: { background: '#2a4a6a', border: '#78c6ff' } },
+  decision: { background: '#3a2a1a', border: '#d29922', highlight: { background: '#5a4a2a', border: '#f2b942' } },
+  end: { background: '#2a1a1a', border: '#f85149', highlight: { background: '#4a2a2a', border: '#ff7169' } },
+};
+
+// ── Pipeline图结构面板 ──
 
 function PipelineGraphPanel({ activeNode, nodeHistory }: {
   activeNode: string | null;
@@ -36,67 +67,42 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
   const networkRef = useRef<any>(null);
   const nodesRef = useRef<any>(null);
   const edgesRef = useRef<any>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
-  // 初始化vis.js图
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 动态加载vis.js
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js';
     script.onload = () => {
       const vis = (window as any).vis;
       if (!vis || !containerRef.current) return;
 
-      const nodeDefs = [
-        { id: '__start__', label: '开始', type: 'start' },
-        { id: 'outline_generator', label: '大纲生成', type: 'process' },
-        { id: 'writer', label: '章节写作', type: 'process' },
-        { id: 'reviewer', label: '质量审查', type: 'process' },
-        { id: 'fact_checker', label: '事实核查', type: 'process' },
-        { id: 'judge', label: '裁判判定', type: 'decision' },
-        { id: 'pdf_generator', label: 'PDF生成', type: 'end' },
-        { id: '__end__', label: '结束', type: 'end' },
-      ];
-
-      const COLORS: Record<string, { background: string; border: string }> = {
-        start: { background: '#1a3a2a', border: '#3fb950' },
-        process: { background: '#1a2a3a', border: '#58a6ff' },
-        decision: { background: '#3a2a1a', border: '#d29922' },
-        end: { background: '#2a1a1a', border: '#f85149' },
-      };
-
-      const nodes = new vis.DataSet(nodeDefs.map(n => ({
+      const nodes = new vis.DataSet(NODE_DEFS.map(n => ({
         id: n.id,
         label: n.label,
         shape: n.id === '__start__' || n.id === '__end__' ? 'dot' : 'box',
-        size: n.id === '__start__' || n.id === '__end__' ? 16 : undefined,
-        margin: 14,
-        font: { color: '#e6e6e6', size: 13 },
+        size: n.id === '__start__' || n.id === '__end__' ? 20 : undefined,
+        margin: { top: 10, right: 16, bottom: 10, left: 16 },
+        font: { color: '#e6e6e6', size: 13, face: '-apple-system, sans-serif' },
         color: COLORS[n.type] || COLORS.process,
         borderWidth: 2,
-        borderRadius: 6,
+        borderWidthSelected: 3,
+        shadow: { enabled: false },
       })));
 
-      const edgeDefs = [
-        { from: '__start__', to: 'outline_generator', label: '' },
-        { from: 'outline_generator', to: 'writer', label: '大纲完成' },
-        { from: 'writer', to: 'reviewer', label: '写作完成' },
-        { from: 'reviewer', to: 'fact_checker', label: '审查完成' },
-        { from: 'fact_checker', to: 'judge', label: '核查完成' },
-        { from: 'judge', to: 'writer', label: 'FAIL: 重写' },
-        { from: 'judge', to: 'pdf_generator', label: 'PASS' },
-        { from: 'pdf_generator', to: '__end__', label: '' },
-      ];
-
-      const edges = new vis.DataSet(edgeDefs.map(e => ({
+      const edges = new vis.DataSet(EDGE_DEFS.map(e => ({
         from: e.from,
         to: e.to,
         label: e.label,
-        arrows: 'to',
-        font: { color: '#8b949e', size: 10, strokeWidth: 0 },
-        color: { color: '#484f58', highlight: '#58a6ff', inherit: 'both' },
-        smooth: { type: 'cubicBezier' },
+        arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+        font: { color: '#8b949e', size: 10, strokeWidth: 0, align: 'middle' },
+        color: {
+          color: e.color || '#484f58',
+          highlight: e.color || '#58a6ff',
+          inherit: false,
+        },
+        smooth: { type: 'cubicBezier', roundness: 0.3 },
         width: 1.5,
       })));
 
@@ -105,8 +111,26 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
 
       networkRef.current = new vis.Network(containerRef.current, { nodes, edges }, {
         physics: false,
-        interaction: { dragNodes: false, zoomView: true, dragView: true },
-        layout: { improvedLayout: true },
+        interaction: { dragNodes: false, zoomView: true, dragView: true, hover: true },
+        layout: {
+          improvedLayout: true,
+          hierarchical: {
+            enabled: true,
+            direction: 'LR',
+            sortMethod: 'directed',
+            levelSeparation: 180,
+            nodeSpacing: 120,
+            treeSpacing: 80,
+          },
+        },
+      });
+
+      networkRef.current.on('click', (params: any) => {
+        if (params.nodes.length) {
+          setSelectedNode(params.nodes[0]);
+        } else {
+          setSelectedNode(null);
+        }
       });
     };
     document.head.appendChild(script);
@@ -125,73 +149,57 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
     const network = networkRef.current;
     if (!nodes || !network) return;
 
-    // 重置所有节点样式
-    const allNodes = nodes.getIds();
-    for (const nid of allNodes) {
-      const hist = nodeHistory[nid];
-      const execLabel = hist && hist.count > 0 ? ` (${hist.count}次)` : '';
-      const origNode = [
-        { id: '__start__', label: '开始' },
-        { id: 'outline_generator', label: '大纲生成' },
-        { id: 'writer', label: '章节写作' },
-        { id: 'reviewer', label: '质量审查' },
-        { id: 'fact_checker', label: '事实核查' },
-        { id: 'judge', label: '裁判判定' },
-        { id: 'pdf_generator', label: 'PDF生成' },
-        { id: '__end__', label: '结束' },
-      ].find(n => n.id === nid);
-
+    // 重置所有节点
+    for (const n of NODE_DEFS) {
+      const hist = nodeHistory[n.id];
+      const execLabel = hist && hist.count > 0
+        ? `\n(${hist.count}次 ${hist.lastMsg ? '· ' + hist.lastMsg.slice(0, 15) : ''})`
+        : '';
+      const color = COLORS[n.type] || COLORS.process;
       nodes.update({
-        id: nid,
+        id: n.id,
+        label: n.label + execLabel,
         borderWidth: 2,
         shadow: { enabled: false },
-        label: (origNode?.label || nid) + execLabel,
+        color: color,
       });
     }
 
     // 高亮活跃节点
     if (activeNode && nodes.get(activeNode)) {
+      const nodeDef = NODE_DEFS.find(n => n.id === activeNode);
+      const color = COLORS[nodeDef?.type || 'process'];
       nodes.update({
         id: activeNode,
         borderWidth: 4,
-        shadow: { enabled: true, color: 'rgba(88,166,255,0.8)', size: 20 },
+        shadow: { enabled: true, color: 'rgba(88,166,255,0.8)', size: 20, x: 0, y: 0 },
+        color: color.highlight,
       });
       network.selectNodes([activeNode]);
       network.focus(activeNode, {
-        scale: 1.2,
-        animation: { duration: 500, easingFunction: 'easeInOutQuad' },
+        scale: 1.3,
+        animation: { duration: 400, easingFunction: 'easeInOutQuad' },
       });
     }
   }, [activeNode, nodeHistory]);
 
-  return (
-    <div className="pipeline-graph-container">
-      <div ref={containerRef} style={{ width: '100%', height: '280px', background: '#0d1117', borderRadius: '8px' }} />
-    </div>
-  );
-}
+  const selDef = NODE_DEFS.find(n => n.id === selectedNode);
+  const selHist = selectedNode ? nodeHistory[selectedNode] : null;
 
-// ── 节点详情面板 ──
-
-function NodeDetailPanel({ nodeId, nodeHistory }: {
-  nodeId: string | null;
-  nodeHistory: Record<string, { count: number; lastMsg: string; messages: string[] }>;
-}) {
-  if (!nodeId) {
-    return <div className="node-detail-empty">点击图中节点查看详情</div>;
-  }
-  const hist = nodeHistory[nodeId];
-  if (!hist || hist.count === 0) {
-    return <div className="node-detail-empty">节点 [{nodeId}] — 尚未执行</div>;
-  }
   return (
-    <div className="node-detail-panel">
-      <div className="node-detail-title">节点 [{nodeId}] — 执行 {hist.count} 次</div>
-      <div className="node-detail-messages">
-        {hist.messages.slice(-5).map((msg, i) => (
-          <div key={i} className="node-detail-msg">{msg}</div>
-        ))}
-      </div>
+    <div className="pipeline-graph-section">
+      <div ref={containerRef} className="pipeline-graph-container" />
+      {selDef && (
+        <div className="graph-node-info">
+          <div className="graph-node-info-title">{selDef.label}</div>
+          <div className="graph-node-info-desc">{selDef.desc}</div>
+          {selHist && selHist.count > 0 && (
+            <div className="graph-node-info-stat">
+              执行 {selHist.count} 次 · 最近: {selHist.lastMsg}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -252,15 +260,13 @@ function extractToolCalls(events: AGUIEvent[]): ToolCall[] {
   return Array.from(toolCalls.values());
 }
 
-// ── 从事件中提取当前活跃的agent节点 ──
+// ── 从事件中提取当前活跃的pipeline节点 ──
 
 function extractActiveNode(events: AGUIEvent[]): string | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const d = events[i].data;
-    // pipeline事件格式
     if (d.type === 'node_start' && d.node_id) return d.node_id;
-    if (d.type === 'node_end') continue; // node_end不设高亮，等下一个node_start
-    // AG-UI格式
+    if (d.type === 'node_end') continue;
     if (d.type === 'STEP_STARTED' && d.stepName) return d.stepName;
     if (d.type === 'RUN_STARTED') return 'outline_generator';
   }
@@ -318,7 +324,6 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
               };
             });
 
-            // 更新节点历史
             setNodeHistory(prev => {
               const updated = { ...prev };
               for (const evt of newEvents) {
@@ -381,11 +386,8 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
         </div>
       </div>
 
-      {/* Agent 图结构 */}
+      {/* Agent 循环图 */}
       <PipelineGraphPanel activeNode={state.currentNode} nodeHistory={nodeHistory} />
-
-      {/* 节点详情 */}
-      <NodeDetailPanel nodeId={state.currentNode} nodeHistory={nodeHistory} />
 
       {/* 状态指示 */}
       <div className="graph-status">

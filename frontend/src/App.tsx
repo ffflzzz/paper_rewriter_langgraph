@@ -3,14 +3,15 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { AgentDashboard } from "./AgentDashboard";
 import { SessionSidebar } from "./SessionSidebar";
 
-// ── 直连AG-UI端点（不走CopilotKit Runtime） ──
+// ── 直连AG-UI端点 ──
 
 const AGUI_URL = `${window.location.origin}/pr/api/copilotkit`;
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
+  toolName?: string;
   timestamp: number;
 }
 
@@ -43,15 +44,32 @@ function ChatPanel({ threadId }: { threadId: string }) {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState('');
+  const [toolCalls, setToolCalls] = useState<{name: string; status: string}[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
 
   useEffect(() => {
     setMessages(getMessages(threadId));
   }, [threadId]);
 
+  // 只在用户在底部时自动滚动
+  const scrollToBottom = useCallback(() => {
+    if (isAtBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamContent]);
+    scrollToBottom();
+  }, [messages, streamContent, scrollToBottom]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const threshold = 100;
+    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -69,6 +87,8 @@ function ChatPanel({ threadId }: { threadId: string }) {
     setInput('');
     setIsStreaming(true);
     setStreamContent('');
+    setToolCalls([]);
+    isAtBottomRef.current = true;
 
     try {
       const runId = crypto.randomUUID().slice(0, 8);
@@ -86,9 +106,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
         }),
       });
 
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}`);
-      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
       const reader = resp.body?.getReader();
       if (!reader) throw new Error('No reader');
@@ -96,6 +114,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
       const decoder = new TextDecoder();
       let buffer = '';
       let fullContent = '';
+      const toolMsgs: Message[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -110,6 +129,8 @@ function ChatPanel({ threadId }: { threadId: string }) {
           const data = line.slice(6);
           try {
             const evt = JSON.parse(data);
+
+            // RAW chat model stream
             if (evt.type === 'RAW' && evt.event?.event === 'on_chat_model_stream') {
               const content = evt.event.data?.chunk?.content || '';
               if (content) {
@@ -117,6 +138,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
                 setStreamContent(fullContent);
               }
             }
+
             // AG-UI TEXT_MESSAGE events
             if (evt.type === 'TEXT_MESSAGE_CONTENT') {
               const content = evt.content || '';
@@ -125,24 +147,56 @@ function ChatPanel({ threadId }: { threadId: string }) {
                 setStreamContent(fullContent);
               }
             }
+
+            // Tool calls
+            if (evt.type === 'TOOL_CALL_START') {
+              const name = evt.name || evt.toolName || 'unknown';
+              setToolCalls(prev => [...prev, { name, status: 'running' }]);
+            }
+            if (evt.type === 'TOOL_CALL_END') {
+              setToolCalls(prev => prev.map((tc, i) =>
+                i === prev.length - 1 ? { ...tc, status: 'done' } : tc
+              ));
+            }
+
+            // RAW tool events
+            if (evt.type === 'RAW' && evt.event?.event === 'on_tool_start') {
+              const name = evt.event.name || 'tool';
+              setToolCalls(prev => [...prev, { name, status: 'running' }]);
+            }
             if (evt.type === 'RAW' && evt.event?.event === 'on_tool_end') {
-              // Tool result - could display
+              const name = evt.event.name || 'tool';
+              const output = String(evt.event.data?.output || '').slice(0, 200);
+              toolMsgs.push({
+                id: crypto.randomUUID(),
+                role: 'tool',
+                content: `[${name}] ${output}`,
+                toolName: name,
+                timestamp: Date.now(),
+              });
+              setToolCalls(prev => prev.map((tc, i) =>
+                i === prev.length - 1 ? { ...tc, status: 'done' } : tc
+              ));
             }
           } catch {}
         }
       }
 
+      // 构建最终消息列表
+      const finalMsgs: Message[] = [...updated];
       if (fullContent) {
-        const assistantMsg: Message = {
+        finalMsgs.push({
           id: crypto.randomUUID(),
           role: 'assistant',
           content: fullContent,
           timestamp: Date.now(),
-        };
-        const final = [...updated, assistantMsg];
-        setMessages(final);
-        saveMessages(threadId, final);
+        });
       }
+      // 工具调用结果追加到assistant消息后面
+      finalMsgs.push(...toolMsgs);
+
+      setMessages(finalMsgs);
+      saveMessages(threadId, finalMsgs);
     } catch (e: any) {
       const errMsg: Message = {
         id: crypto.randomUUID(),
@@ -156,12 +210,13 @@ function ChatPanel({ threadId }: { threadId: string }) {
     } finally {
       setIsStreaming(false);
       setStreamContent('');
+      setToolCalls([]);
     }
   }, [input, isStreaming, messages, threadId]);
 
   return (
     <div className="chat-panel">
-      <div className="chat-messages">
+      <div className="chat-messages" ref={scrollContainerRef} onScroll={handleScroll}>
         {messages.length === 0 && (
           <div className="chat-empty">
             <p>你好！我是论文重写助手。</p>
@@ -176,6 +231,15 @@ function ChatPanel({ threadId }: { threadId: string }) {
         {isStreaming && streamContent && (
           <div className="chat-msg assistant streaming">
             <div className="chat-msg-content">{streamContent}</div>
+          </div>
+        )}
+        {isStreaming && toolCalls.length > 0 && (
+          <div className="chat-tools">
+            {toolCalls.map((tc, i) => (
+              <div key={i} className={`chat-tool ${tc.status}`}>
+                {tc.status === 'running' ? '🔄' : '✅'} {tc.name}
+              </div>
+            ))}
           </div>
         )}
         <div ref={messagesEndRef} />

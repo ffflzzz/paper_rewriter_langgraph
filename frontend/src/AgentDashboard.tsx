@@ -26,59 +26,7 @@ interface AgentState {
   events: AGUIEvent[];
 }
 
-// ── 节点定义（Loop Agent: agent ↔ tools 循环，tools展开显示9个工具） ──
-
-const NODE_DEFS = [
-  { id: '__start__', label: '▶ START', type: 'start', desc: '接收用户消息' },
-  { id: 'agent', label: '🤖 Agent\nMiMo v2.5 Pro', type: 'process', desc: 'LLM决定下一步：调用工具或回复用户' },
-  // Tools 子节点
-  { id: 't_search_paper', label: '🔍 search_paper', type: 'tool', desc: '搜索arXiv/Semantic Scholar/CrossRef/PubMed' },
-  { id: 't_download_paper', label: '📥 download_paper', type: 'tool', desc: '下载PDF并提取文本' },
-  { id: 't_save_outline', label: '📋 save_outline', type: 'tool', desc: '保存章节大纲到磁盘' },
-  { id: 't_search_original', label: '🔎 search_original', type: 'tool', desc: '按关键词搜索原文段落' },
-  { id: 't_read_segment', label: '📖 read_original_segment', type: 'tool', desc: '按百分比读取原文片段' },
-  { id: 't_write_chapter', label: '✍️ write_chapter', type: 'tool', desc: '写入/覆写章节（即时持久化）' },
-  { id: 't_read_chapter', label: '📄 read_chapter', type: 'tool', desc: '读取已写章节内容' },
-  { id: 't_list_chapters', label: '📊 list_chapters', type: 'tool', desc: '列出所有章节及字数' },
-  { id: 't_self_review', label: '🔍 self_review_chapter', type: 'tool', desc: '自审：对比大纲检查质量' },
-  { id: '__end__', label: '⏹ END', type: 'end', desc: '无tool_call，回复用户' },
-];
-
-const EDGE_DEFS = [
-  { from: '__start__', to: 'agent', label: '' },
-  // agent → 每个tool（都标为有tool_call）
-  { from: 'agent', to: 't_search_paper', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_download_paper', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_save_outline', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_search_original', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_read_segment', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_write_chapter', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_read_chapter', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_list_chapters', label: '', color: '#58a6ff' },
-  { from: 'agent', to: 't_self_review', label: '', color: '#58a6ff' },
-  // 每个tool → agent（结果返回）
-  { from: 't_search_paper', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_download_paper', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_save_outline', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_search_original', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_read_segment', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_write_chapter', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_read_chapter', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_list_chapters', to: 'agent', label: '', color: '#8b949e' },
-  { from: 't_self_review', to: 'agent', label: '', color: '#8b949e' },
-  // agent → END
-  { from: 'agent', to: '__end__', label: '无tool_call', color: '#3fb950' },
-];
-
-const COLORS: Record<string, { background: string; border: string; highlight: { background: string; border: string } }> = {
-  start: { background: '#1a3a2a', border: '#3fb950', highlight: { background: '#2a5a3a', border: '#5fd97f' } },
-  process: { background: '#1a2a3a', border: '#58a6ff', highlight: { background: '#2a4a6a', border: '#78c6ff' } },
-  decision: { background: '#3a2a1a', border: '#d29922', highlight: { background: '#5a4a2a', border: '#f2b942' } },
-  tool: { background: '#1a1a2a', border: '#a78bfa', highlight: { background: '#2a2a4a', border: '#c4b5fd' } },
-  end: { background: '#2a1a1a', border: '#f85149', highlight: { background: '#4a2a2a', border: '#ff7169' } },
-};
-
-// ── Pipeline图结构面板 ──
+// ── 图结构面板（从/api/graph动态加载） ──
 
 function PipelineGraphPanel({ activeNode, nodeHistory }: {
   activeNode: string | null;
@@ -87,11 +35,20 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
   const containerRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<any>(null);
   const nodesRef = useRef<any>(null);
-  const edgesRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [graphData, setGraphData] = useState<any>(null);
 
+  // 从API加载图结构
   useEffect(() => {
-    if (!containerRef.current) return;
+    fetch(`${window.location.origin}/pr/api/graph`)
+      .then(r => r.json())
+      .then(data => setGraphData(data))
+      .catch(e => console.error('Failed to load graph:', e));
+  }, []);
+
+  // 初始化vis.js图
+  useEffect(() => {
+    if (!containerRef.current || !graphData) return;
 
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js';
@@ -99,36 +56,39 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
       const vis = (window as any).vis;
       if (!vis || !containerRef.current) return;
 
-      const nodes = new vis.DataSet(NODE_DEFS.map(n => ({
+      const COLORS: Record<string, { background: string; border: string; highlight: { background: string; border: string } }> = {
+        start: { background: '#1a3a2a', border: '#3fb950', highlight: { background: '#2a5a3a', border: '#5fd97f' } },
+        process: { background: '#1a2a3a', border: '#58a6ff', highlight: { background: '#2a4a6a', border: '#78c6ff' } },
+        decision: { background: '#3a2a1a', border: '#d29922', highlight: { background: '#5a4a2a', border: '#f2b942' } },
+        tool: { background: '#1a1a2a', border: '#a78bfa', highlight: { background: '#2a2a4a', border: '#c4b5fd' } },
+        end: { background: '#2a1a1a', border: '#f85149', highlight: { background: '#4a2a2a', border: '#ff7169' } },
+      };
+
+      const nodes = new vis.DataSet(graphData.nodes.map((n: any) => ({
         id: n.id,
         label: n.label,
-        shape: n.id === '__start__' || n.id === '__end__' ? 'dot' : 'box',
-        size: n.id === '__start__' || n.id === '__end__' ? 20 : undefined,
+        shape: n.type === 'start' || n.type === 'end' ? 'dot' : 'box',
+        size: n.type === 'start' || n.type === 'end' ? 20 : undefined,
         margin: { top: 10, right: 16, bottom: 10, left: 16 },
-        font: { color: '#e6e6e6', size: 13, face: '-apple-system, sans-serif' },
+        font: { color: '#e6e6e6', size: 12, face: '-apple-system, sans-serif' },
         color: COLORS[n.type] || COLORS.process,
         borderWidth: 2,
-        borderWidthSelected: 3,
         shadow: { enabled: false },
+        title: n.desc, // tooltip
       })));
 
-      const edges = new vis.DataSet(EDGE_DEFS.map(e => ({
+      const edges = new vis.DataSet(graphData.edges.map((e: any) => ({
         from: e.from,
         to: e.to,
-        label: e.label,
+        label: e.label || '',
         arrows: { to: { enabled: true, scaleFactor: 0.8 } },
-        font: { color: '#8b949e', size: 10, strokeWidth: 0, align: 'middle' },
-        color: {
-          color: e.color || '#484f58',
-          highlight: e.color || '#58a6ff',
-          inherit: false,
-        },
+        font: { color: '#8b949e', size: 9, strokeWidth: 0, align: 'middle' },
+        color: { color: e.color || '#484f58', highlight: e.color || '#58a6ff', inherit: false },
         smooth: { type: 'cubicBezier', roundness: 0.3 },
         width: 1.5,
       })));
 
       nodesRef.current = nodes;
-      edgesRef.current = edges;
 
       networkRef.current = new vis.Network(containerRef.current, { nodes, edges }, {
         physics: false,
@@ -140,72 +100,60 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
             direction: 'LR',
             sortMethod: 'directed',
             levelSeparation: 200,
-            nodeSpacing: 80,
-            treeSpacing: 60,
+            nodeSpacing: 70,
+            treeSpacing: 50,
           },
         },
       });
 
       networkRef.current.on('click', (params: any) => {
-        if (params.nodes.length) {
-          setSelectedNode(params.nodes[0]);
-        } else {
-          setSelectedNode(null);
-        }
+        setSelectedNode(params.nodes.length ? params.nodes[0] : null);
       });
     };
     document.head.appendChild(script);
 
     return () => {
-      if (networkRef.current) {
-        networkRef.current.destroy();
-        networkRef.current = null;
-      }
+      if (networkRef.current) { networkRef.current.destroy(); networkRef.current = null; }
     };
-  }, []);
+  }, [graphData]);
 
   // 高亮活跃节点
   useEffect(() => {
     const nodes = nodesRef.current;
     const network = networkRef.current;
-    if (!nodes || !network) return;
+    if (!nodes || !network || !graphData) return;
 
     // 重置所有节点
-    for (const n of NODE_DEFS) {
-      const hist = nodeHistory[n.id];
-      const execLabel = hist && hist.count > 0
-        ? `\n(${hist.count}次 ${hist.lastMsg ? '· ' + hist.lastMsg.slice(0, 15) : ''})`
-        : '';
+    for (const n of graphData.nodes) {
+      const hist = nodeHistory[n.id] || nodeHistory[n.id.replace('t_', '')];
+      const execLabel = hist && hist.count > 0 ? `\n(${hist.count}次)` : '';
+      const COLORS: Record<string, any> = {
+        start: { background: '#1a3a2a', border: '#3fb950' },
+        process: { background: '#1a2a3a', border: '#58a6ff' },
+        tool: { background: '#1a1a2a', border: '#a78bfa' },
+        end: { background: '#2a1a1a', border: '#f85149' },
+      };
       const color = COLORS[n.type] || COLORS.process;
-      nodes.update({
-        id: n.id,
-        label: n.label + execLabel,
-        borderWidth: 2,
-        shadow: { enabled: false },
-        color: color,
-      });
+      if (nodes.get(n.id)) {
+        nodes.update({ id: n.id, label: n.label + execLabel, borderWidth: 2, shadow: { enabled: false }, color });
+      }
     }
 
     // 高亮活跃节点
     if (activeNode && nodes.get(activeNode)) {
-      const nodeDef = NODE_DEFS.find(n => n.id === activeNode);
-      const color = COLORS[nodeDef?.type || 'process'];
       nodes.update({
         id: activeNode,
         borderWidth: 4,
         shadow: { enabled: true, color: 'rgba(88,166,255,0.8)', size: 20, x: 0, y: 0 },
-        color: color.highlight,
+        color: { background: '#2a4a6a', border: '#78c6ff', highlight: { background: '#3a6a9a', border: '#98e6ff' } },
       });
       network.selectNodes([activeNode]);
-      network.focus(activeNode, {
-        scale: 1.3,
-        animation: { duration: 400, easingFunction: 'easeInOutQuad' },
-      });
+      network.focus(activeNode, { scale: 1.3, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
     }
-  }, [activeNode, nodeHistory]);
+  }, [activeNode, nodeHistory, graphData]);
 
-  const selDef = NODE_DEFS.find(n => n.id === selectedNode);
-  const selHist = selectedNode ? nodeHistory[selectedNode] : null;
+  const selDef = graphData?.nodes.find((n: any) => n.id === selectedNode);
+  const selHist = selectedNode ? (nodeHistory[selectedNode] || nodeHistory[selectedNode.replace('t_', '')]) : null;
 
   return (
     <div className="pipeline-graph-section">

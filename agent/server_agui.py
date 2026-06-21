@@ -209,8 +209,53 @@ PIPELINE_GRAPH = {
 
 @app.get("/api/graph")
 async def get_graph():
-    """返回流水线图结构"""
-    return PIPELINE_GRAPH
+    """返回Agent图结构（从LangGraph动态获取）"""
+    if _agui_agent is None:
+        return {"nodes": [], "edges": []}
+
+    g = _agui_agent.graph.get_graph()
+
+    nodes = []
+    for n in g.nodes.values():
+        nid = n.id
+        if nid == "__start__":
+            nodes.append({"id": nid, "label": "▶ START", "type": "start", "desc": "接收用户消息"})
+        elif nid == "__end__":
+            nodes.append({"id": nid, "label": "⏹ END", "type": "end", "desc": "任务完成"})
+        elif nid == "agent":
+            nodes.append({"id": nid, "label": "🤖 Agent", "type": "process", "desc": "MiMo v2.5 Pro — 决定调用工具或回复用户"})
+        elif nid == "tools":
+            # 展开tools节点为子工具
+            from agent.graph import tools as tool_list
+            for t in tool_list:
+                nodes.append({
+                    "id": f"t_{t.name}",
+                    "label": f"🔧 {t.name}",
+                    "type": "tool",
+                    "desc": (t.description or "")[:100],
+                })
+        else:
+            nodes.append({"id": nid, "label": nid, "type": "process", "desc": ""})
+
+    edges = []
+    for e in g.edges:
+        src, tgt = e.source, e.target
+        if src == "agent" and tgt == "tools":
+            # agent → 每个tool
+            from agent.graph import tools as tool_list
+            for t in tool_list:
+                edges.append({"from": "agent", "to": f"t_{t.name}", "label": "", "color": "#58a6ff"})
+        elif src == "tools" and tgt == "agent":
+            # 每个tool → agent
+            from agent.graph import tools as tool_list
+            for t in tool_list:
+                edges.append({"from": f"t_{t.name}", "to": "agent", "label": "", "color": "#8b949e"})
+        elif src == "agent" and tgt == "__end__":
+            edges.append({"from": src, "to": tgt, "label": "无tool_call", "color": "#3fb950"})
+        else:
+            edges.append({"from": src, "to": tgt, "label": ""})
+
+    return {"nodes": nodes, "edges": edges}
 
 
 # ── 原有API端点 ──
@@ -352,7 +397,33 @@ async def init_checkpointer():
         graph=graph,
         description="论文重写多Agent系统：writer→reviewer→factchecker→judge循环",
     )
-    add_langgraph_fastapi_endpoint(app, _agui_agent, path="/api/copilotkit")
+    # 自建AG-UI端点（兼容CopilotKit Runtime不传state的问题）
+    from ag_ui.core.types import RunAgentInput
+    from ag_ui.encoder import EventEncoder
+
+    @app.post("/api/copilotkit")
+    async def copilotkit_endpoint(request: Request):
+        """AG-UI端点 — 自动补state默认值"""
+        body = await request.json()
+        # CopilotKit Runtime不传state，补默认值
+        if "state" not in body:
+            body["state"] = {}
+        # 转为RunAgentInput
+        input_data = RunAgentInput(**body)
+
+        accept_header = request.headers.get("accept")
+        encoder = EventEncoder(accept=accept_header)
+        request_agent = _agui_agent.clone()
+
+        async def event_generator():
+            async for event in request_agent.run(input_data):
+                yield encoder.encode(event)
+
+        return StreamingResponse(
+            event_generator(),
+            media_type=encoder.get_content_type(),
+        )
+
     print(f"AG-UI initialized with AsyncSqliteSaver: {_db_path}")
 
     # 在AG-UI端点之后挂载静态文件，确保API路由优先级更高

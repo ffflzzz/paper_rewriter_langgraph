@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>论文重写 Agent - 图结构</title>
+  <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, sans-serif; }
+    .header { padding: 16px 24px; background: rgba(10,10,15,0.95); border-bottom: 1px solid rgba(126,184,255,0.08); display: flex; align-items: center; gap: 16px; }
+    .header h1 { font-size: 18px; font-weight: 500; }
+    .header a { color: #7eb8ff; font-size: 13px; }
+    #graph { width: 100%; height: calc(100vh - 60px); }
+    .legend { position: fixed; bottom: 16px; left: 16px; background: rgba(10,10,15,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px 16px; font-size: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .tooltip { position: fixed; background: rgba(10,10,15,0.95); border: 1px solid rgba(126,184,255,0.2); border-radius: 8px; padding: 12px 16px; font-size: 13px; max-width: 400px; display: none; z-index: 100; }
+    .tooltip-title { font-weight: 600; color: #7eb8ff; margin-bottom: 6px; }
+    .tooltip-desc { color: #999; line-height: 1.6; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Agent 图结构</h1>
+    <a href="/pr/">← 返回论文重写</a>
+  </div>
+  <div id="graph"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> 开始/结束</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Agent 节点</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> 工具节点</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> 决策节点</div>
+  </div>
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-title" id="tooltip-title"></div>
+    <div class="tooltip-desc" id="tooltip-desc"></div>
+  </div>
+
+  <script>
+    const COLORS = {
+      start: { background: '#1a3a2a', border: '#3fb950', highlight: { background: '#2a5a3a', border: '#5fd97f' } },
+      process: { background: '#1a2a3a', border: '#58a6ff', highlight: { background: '#2a4a6a', border: '#78c6ff' } },
+      tool: { background: '#1a1a2a', border: '#a78bfa', highlight: { background: '#2a2a4a', border: '#c4b5fd' } },
+      end: { background: '#2a1a1a', border: '#f85149', highlight: { background: '#4a2a2a', border: '#ff7169' } },
+    };
+
+    fetch('/pr/api/graph')
+      .then(r => r.json())
+      .then(data => {
+        const nodes = new vis.DataSet(data.nodes.map(n => ({
+          id: n.id,
+          label: n.label,
+          shape: n.type === 'start' || n.type === 'end' ? 'dot' : 'box',
+          size: n.type === 'start' || n.type === 'end' ? 20 : undefined,
+          margin: { top: 10, right: 16, bottom: 10, left: 16 },
+          font: { color: '#e6e6e6', size: 13, face: '-apple-system, sans-serif' },
+          color: COLORS[n.type] || COLORS.process,
+          borderWidth: 2,
+          shadow: { enabled: false },
+          title: n.desc,
+        })));
+
+        const edges = new vis.DataSet(data.edges.map(e => ({
+          from: e.from,
+          to: e.to,
+          label: e.label || '',
+          arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+          font: { color: '#8b949e', size: 10, strokeWidth: 0, align: 'middle' },
+          color: { color: e.color || '#484f58', highlight: e.color || '#58a6ff', inherit: false },
+          smooth: { type: 'cubicBezier', roundness: 0.3 },
+          width: 1.5,
+        })));
+
+        const network = new vis.Network(document.getElementById('graph'), { nodes, edges }, {
+          physics: {
+            enabled: true,
+            solver: 'forceAtlas2Based',
+            forceAtlas2Based: {
+              gravitationalConstant: -80,
+              centralGravity: 0.01,
+              springLength: 200,
+              springConstant: 0.08,
+              damping: 0.4,
+              avoidOverlap: 0.5,
+            },
+            stabilization: { iterations: 200 },
+          },
+          interaction: { dragNodes: true, zoomView: true, dragView: true, hover: true },
+          layout: { improvedLayout: false },
+        });
+
+        const tooltip = document.getElementById('tooltip');
+        const tooltipTitle = document.getElementById('tooltip-title');
+        const tooltipDesc = document.getElementById('tooltip-desc');
+
+        network.on('click', function(params) {
+          if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = data.nodes.find(n => n.id === nodeId);
+            if (node) {
+              tooltipTitle.textContent = node.label;
+              tooltipDesc.textContent = node.desc;
+              const pointer = params.pointer.DOM;
+              tooltip.style.left = (pointer.x + 16) + 'px';
+              tooltip.style.top = (pointer.y + 16) + 'px';
+              tooltip.style.display = 'block';
+            }
+          } else {
+            tooltip.style.display = 'none';
+          }
+        });
+      })
+      .catch(err => {
+        document.getElementById('graph').innerHTML = '<div style="padding:40px;color:#f85149">加载图结构失败: ' + err.message + '</div>';
+      });
+  </script>
+</body>
+</html>

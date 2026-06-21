@@ -26,28 +26,20 @@ interface AgentState {
   events: AGUIEvent[];
 }
 
-// ── 节点定义 ──
+// ── 节点定义（Loop Agent: agent ↔ tools 循环） ──
 
 const NODE_DEFS = [
-  { id: '__start__', label: '▶ 开始', type: 'start', desc: '接收论文原文和标题' },
-  { id: 'outline_generator', label: '📋 大纲生成', type: 'process', desc: '分析原文结构，生成章节大纲' },
-  { id: 'writer', label: '✍️ 章节写作', type: 'process', desc: '逐章写作，微分-积分方法展开概念' },
-  { id: 'reviewer', label: '🔍 质量审查', type: 'process', desc: '对比原文，检查覆盖率和行文质量' },
-  { id: 'fact_checker', label: '✅ 事实核查', type: 'process', desc: '检查重写是否忠于原文，有无幻觉' },
-  { id: 'judge', label: '⚖️ 裁判判定', type: 'decision', desc: '综合评分≥7通过，否则返回重写' },
-  { id: 'pdf_generator', label: '📄 PDF生成', type: 'end', desc: '生成最终PDF文件' },
-  { id: '__end__', label: '⏹ 结束', type: 'end', desc: '任务完成' },
+  { id: '__start__', label: '▶ START', type: 'start', desc: '接收用户消息' },
+  { id: 'agent', label: '🤖 Agent', type: 'process', desc: 'MiMo v2.5 Pro — 决定下一步行动' },
+  { id: 'tools', label: '🔧 Tools', type: 'decision', desc: 'search_paper / download_paper / write_chapter / ...' },
+  { id: '__end__', label: '⏹ END', type: 'end', desc: '无更多工具调用，回复用户' },
 ];
 
 const EDGE_DEFS = [
-  { from: '__start__', to: 'outline_generator', label: '' },
-  { from: 'outline_generator', to: 'writer', label: '大纲完成' },
-  { from: 'writer', to: 'reviewer', label: '写作完成' },
-  { from: 'reviewer', to: 'fact_checker', label: '审查完成' },
-  { from: 'fact_checker', to: 'judge', label: '核查完成' },
-  { from: 'judge', to: 'writer', label: 'FAIL → 重写', color: '#f85149' },
-  { from: 'judge', to: 'pdf_generator', label: 'PASS → 生成', color: '#3fb950' },
-  { from: 'pdf_generator', to: '__end__', label: '' },
+  { from: '__start__', to: 'agent', label: '' },
+  { from: 'tools', to: 'agent', label: '结果返回' },
+  { from: 'agent', to: 'tools', label: '有tool_call', color: '#58a6ff' },
+  { from: 'agent', to: '__end__', label: '无tool_call', color: '#3fb950' },
 ];
 
 const COLORS: Record<string, { background: string; border: string; highlight: { background: string; border: string } }> = {
@@ -268,7 +260,7 @@ function extractActiveNode(events: AGUIEvent[]): string | null {
     if (d.type === 'node_start' && d.node_id) return d.node_id;
     if (d.type === 'node_end') continue;
     if (d.type === 'STEP_STARTED' && d.stepName) return d.stepName;
-    if (d.type === 'RUN_STARTED') return 'outline_generator';
+    if (d.type === 'RUN_STARTED') return 'agent';
   }
   return null;
 }

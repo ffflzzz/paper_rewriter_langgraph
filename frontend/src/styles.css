@@ -1674,7 +1674,7 @@ body {
 }
 
 .pipeline-graph-container {
-  height: 320px;
+  height: 500px;
   background: #0d1117;
   border: 1px solid var(--border-primary, #334155);
   border-radius: var(--radius-lg, 8px);

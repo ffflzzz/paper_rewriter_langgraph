@@ -26,19 +26,47 @@ interface AgentState {
   events: AGUIEvent[];
 }
 
-// ── 节点定义（Loop Agent: agent ↔ tools 循环） ──
+// ── 节点定义（Loop Agent: agent ↔ tools 循环，tools展开显示9个工具） ──
 
 const NODE_DEFS = [
   { id: '__start__', label: '▶ START', type: 'start', desc: '接收用户消息' },
-  { id: 'agent', label: '🤖 Agent', type: 'process', desc: 'MiMo v2.5 Pro — 决定下一步行动' },
-  { id: 'tools', label: '🔧 Tools', type: 'decision', desc: 'search_paper / download_paper / write_chapter / ...' },
-  { id: '__end__', label: '⏹ END', type: 'end', desc: '无更多工具调用，回复用户' },
+  { id: 'agent', label: '🤖 Agent\nMiMo v2.5 Pro', type: 'process', desc: 'LLM决定下一步：调用工具或回复用户' },
+  // Tools 子节点
+  { id: 't_search_paper', label: '🔍 search_paper', type: 'tool', desc: '搜索arXiv/Semantic Scholar/CrossRef/PubMed' },
+  { id: 't_download_paper', label: '📥 download_paper', type: 'tool', desc: '下载PDF并提取文本' },
+  { id: 't_save_outline', label: '📋 save_outline', type: 'tool', desc: '保存章节大纲到磁盘' },
+  { id: 't_search_original', label: '🔎 search_original', type: 'tool', desc: '按关键词搜索原文段落' },
+  { id: 't_read_segment', label: '📖 read_original_segment', type: 'tool', desc: '按百分比读取原文片段' },
+  { id: 't_write_chapter', label: '✍️ write_chapter', type: 'tool', desc: '写入/覆写章节（即时持久化）' },
+  { id: 't_read_chapter', label: '📄 read_chapter', type: 'tool', desc: '读取已写章节内容' },
+  { id: 't_list_chapters', label: '📊 list_chapters', type: 'tool', desc: '列出所有章节及字数' },
+  { id: 't_self_review', label: '🔍 self_review_chapter', type: 'tool', desc: '自审：对比大纲检查质量' },
+  { id: '__end__', label: '⏹ END', type: 'end', desc: '无tool_call，回复用户' },
 ];
 
 const EDGE_DEFS = [
   { from: '__start__', to: 'agent', label: '' },
-  { from: 'tools', to: 'agent', label: '结果返回' },
-  { from: 'agent', to: 'tools', label: '有tool_call', color: '#58a6ff' },
+  // agent → 每个tool（都标为有tool_call）
+  { from: 'agent', to: 't_search_paper', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_download_paper', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_save_outline', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_search_original', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_read_segment', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_write_chapter', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_read_chapter', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_list_chapters', label: '', color: '#58a6ff' },
+  { from: 'agent', to: 't_self_review', label: '', color: '#58a6ff' },
+  // 每个tool → agent（结果返回）
+  { from: 't_search_paper', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_download_paper', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_save_outline', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_search_original', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_read_segment', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_write_chapter', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_read_chapter', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_list_chapters', to: 'agent', label: '', color: '#8b949e' },
+  { from: 't_self_review', to: 'agent', label: '', color: '#8b949e' },
+  // agent → END
   { from: 'agent', to: '__end__', label: '无tool_call', color: '#3fb950' },
 ];
 
@@ -46,6 +74,7 @@ const COLORS: Record<string, { background: string; border: string; highlight: { 
   start: { background: '#1a3a2a', border: '#3fb950', highlight: { background: '#2a5a3a', border: '#5fd97f' } },
   process: { background: '#1a2a3a', border: '#58a6ff', highlight: { background: '#2a4a6a', border: '#78c6ff' } },
   decision: { background: '#3a2a1a', border: '#d29922', highlight: { background: '#5a4a2a', border: '#f2b942' } },
+  tool: { background: '#1a1a2a', border: '#a78bfa', highlight: { background: '#2a2a4a', border: '#c4b5fd' } },
   end: { background: '#2a1a1a', border: '#f85149', highlight: { background: '#4a2a2a', border: '#ff7169' } },
 };
 
@@ -110,9 +139,9 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
             enabled: true,
             direction: 'LR',
             sortMethod: 'directed',
-            levelSeparation: 180,
-            nodeSpacing: 120,
-            treeSpacing: 80,
+            levelSeparation: 200,
+            nodeSpacing: 80,
+            treeSpacing: 60,
           },
         },
       });

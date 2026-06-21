@@ -108,10 +108,12 @@ export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }:
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    // 首次加载时迁移localStorage数据
-    migrateLocalStorage().then(() => {
-      refresh();
-    });
+    // 先迁移localStorage数据，再加载session列表
+    const init = async () => {
+      await migrateLocalStorage();
+      await refresh();
+    };
+    init();
 
     const interval = setInterval(refresh, 3000);
     return () => clearInterval(interval);

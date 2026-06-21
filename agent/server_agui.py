@@ -387,6 +387,14 @@ async def init_checkpointer():
     # 桥接pipeline事件
     _setup_pipeline_bridge()
 
+    # ETCLOVG: 注册system prompt版本
+    try:
+        from etclovg.versioning import register_prompt
+        from agent.graph import SYSTEM_PROMPT
+        register_prompt(SYSTEM_PROMPT, notes="agent startup")
+    except Exception:
+        pass
+
     conn = await aiosqlite.connect(_db_path)
     _checkpointer = AsyncSqliteSaver(conn)
 
@@ -504,3 +512,17 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ── ETCLOVG API ──
+
+@app.get("/api/etclovg")
+async def get_etclovg_status():
+    """ETCLOVG框架状态总览"""
+    from etclovg.governance import get_governance_status
+    from etclovg.versioning import get_version_info
+    from etclovg.evaluation import get_evaluation_status
+    return {
+        "governance": get_governance_status(),
+        "versioning": get_version_info(),
+        "evaluation": get_evaluation_status(),
+    }

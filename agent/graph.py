@@ -437,6 +437,21 @@ def agent_node(state: MessagesState) -> dict:
     
     response = llm_with_tools.invoke(messages)
     _log(f"agent_node: response tool_calls={bool(response.tool_calls)}, content_len={len(response.content or '')}")
+
+    # ETCLOVG: 记录token使用量
+    try:
+        from etclovg.governance import record_usage, extract_usage_from_response
+        from etclovg.versioning import get_version_info
+        inp, out = extract_usage_from_response(response)
+        if inp > 0 or out > 0:
+            record_usage(
+                model="mimo-v2.5-pro",
+                input_tokens=inp, output_tokens=out,
+                node="agent",
+                prompt_version=get_version_info().get("current_version", ""),
+            )
+    except Exception:
+        pass  # 不影响主流程
     
     # 记录tool_calls信息
     if response.tool_calls:

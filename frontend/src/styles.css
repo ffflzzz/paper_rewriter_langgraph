@@ -1745,3 +1745,85 @@ body {
   border-bottom-left-radius: 4px;
   padding: 6px 10px;
 }
+
+/* ═══════════════════════════════════════════════
+   ETCLOVG 指标面板
+   ═══════════════════════════════════════════════ */
+
+.etclovg-section {
+  margin-top: var(--spacing-lg, 16px);
+}
+
+.etclovg-section h4 {
+  margin: 0 0 var(--spacing-sm, 8px) 0;
+  font-size: var(--text-base, 13px);
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.etclovg-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+
+.etclovg-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-sm, 8px);
+  background: var(--bg-secondary, #1e293b);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--text-sm, 12px);
+}
+
+.etclovg-label {
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.etclovg-metric {
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs, 11px);
+  white-space: nowrap;
+}
+
+.etclovg-metric code {
+  background: var(--bg-primary, #0f172a);
+  color: #7dd3fc;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.etclovg-warn {
+  color: var(--warning, #f59e0b);
+}
+
+.etclovg-alert {
+  color: var(--error, #ef4444);
+  font-weight: 600;
+}
+
+.etclovg-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+  margin-left: var(--spacing-xs, 4px);
+}
+
+.etclovg-bar {
+  width: 6px;
+  background: var(--success, #10b981);
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+}
+
+.etclovg-bar-low {
+  background: var(--error, #ef4444);
+}

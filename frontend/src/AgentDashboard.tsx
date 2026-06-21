@@ -411,7 +411,123 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
         </div>
       </div>
 
+      {/* ETCLOVG 指标 */}
+      <ETCLOVGPanel />
+
       <PDFDownloadPanel />
+    </div>
+  );
+}
+
+// ── ETCLOVG指标面板 ──
+
+interface ETCLOVGData {
+  governance: {
+    token_usage: {
+      session_input_tokens: number;
+      session_output_tokens: number;
+      session_total_tokens: number;
+      session_cost_yuan: number;
+      request_count: number;
+    };
+    rate_limiter: {
+      max_requests: number;
+      window_seconds: number;
+      current_count: number;
+      remaining: number;
+    };
+    pricing: {
+      input_per_1k: number;
+      output_per_1k: number;
+      currency: string;
+    };
+  };
+  versioning: {
+    current_version: string;
+    total_versions: number;
+    history: any[];
+  };
+  evaluation: {
+    total_runs: number;
+    recent_mean: number;
+    regression: {
+      regression: boolean;
+      latest_score: number;
+      mean: number;
+      std: number;
+      threshold: number;
+    };
+    trend: Array<{ combined_score: number; [key: string]: any }>;
+  };
+}
+
+function ETCLOVGPanel() {
+  const [data, setData] = useState<ETCLOVGData | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const base = window.location.origin;
+        const resp = await fetch(`${base}/pr/api/etclovg`);
+        if (resp.ok) setData(await resp.json());
+      } catch (_) {}
+    };
+    load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!data) return null;
+
+  const { governance: g, versioning: v, evaluation: e } = data;
+  const scores = e.trend.slice(-10).map(t => t.combined_score);
+  const maxScore = Math.max(...scores, 1);
+
+  return (
+    <div className="etclovg-section">
+      <h4>📊 ETCLOVG 指标</h4>
+      <div className="etclovg-rows">
+        {/* Governance */}
+        <div className="etclovg-row">
+          <span className="etclovg-label">🏛️ 治理</span>
+          <span className="etclovg-metric">输入: {g.token_usage.session_input_tokens.toLocaleString()}</span>
+          <span className="etclovg-metric">输出: {g.token_usage.session_output_tokens.toLocaleString()}</span>
+          <span className="etclovg-metric">总计: {g.token_usage.session_total_tokens.toLocaleString()}</span>
+          <span className="etclovg-metric">费用: ¥{g.token_usage.session_cost_yuan.toFixed(4)}</span>
+          <span className={`etclovg-metric ${g.rate_limiter.remaining < 3 ? 'etclovg-warn' : ''}`}>
+            限流: {g.rate_limiter.current_count}/{g.rate_limiter.max_requests} (剩余{g.rate_limiter.remaining})
+          </span>
+        </div>
+
+        {/* Versioning */}
+        <div className="etclovg-row">
+          <span className="etclovg-label">🔖 版本</span>
+          <span className="etclovg-metric">当前: <code>{v.current_version.slice(0, 8)}</code></span>
+          <span className="etclovg-metric">总版本: {v.total_versions}</span>
+        </div>
+
+        {/* Evaluation */}
+        <div className="etclovg-row">
+          <span className="etclovg-label">📈 评估</span>
+          <span className="etclovg-metric">均分: {e.recent_mean.toFixed(1)}</span>
+          <span className="etclovg-metric">最新: {e.regression.latest_score.toFixed(1)}</span>
+          {e.regression.regression && (
+            <span className="etclovg-metric etclovg-alert">⚠️ 回归!</span>
+          )}
+          <span className="etclovg-metric">运行: {e.total_runs}</span>
+          {/* Mini bar chart */}
+          <span className="etclovg-bars" title={`最近${scores.length}次: ${scores.join(', ')}`}>
+            {scores.map((s, i) => (
+              <span
+                key={i}
+                className={`etclovg-bar ${s < e.regression.threshold ? 'etclovg-bar-low' : ''}`}
+                style={{ height: `${Math.max((s / maxScore) * 18, 2)}px` }}
+                title={`${s.toFixed(1)}`}
+              />
+            ))}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

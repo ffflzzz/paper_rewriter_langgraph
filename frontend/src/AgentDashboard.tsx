@@ -452,10 +452,11 @@ interface ETCLOVGData {
     recent_mean: number;
     regression: {
       regression: boolean;
-      latest_score: number;
-      mean: number;
-      std: number;
-      threshold: number;
+      latest_score?: number;
+      mean?: number;
+      std?: number;
+      threshold?: number;
+      reason?: string;
     };
     trend: Array<{ combined_score: number; [key: string]: any }>;
   };
@@ -509,8 +510,10 @@ function ETCLOVGPanel() {
         {/* Evaluation */}
         <div className="etclovg-row">
           <span className="etclovg-label">📈 评估</span>
-          <span className="etclovg-metric">均分: {e.recent_mean.toFixed(1)}</span>
-          <span className="etclovg-metric">最新: {e.regression.latest_score.toFixed(1)}</span>
+          <span className="etclovg-metric">均分: {(e.recent_mean ?? 0).toFixed(1)}</span>
+          {e.regression.latest_score != null && (
+            <span className="etclovg-metric">最新: {e.regression.latest_score.toFixed(1)}</span>
+          )}
           {e.regression.regression && (
             <span className="etclovg-metric etclovg-alert">⚠️ 回归!</span>
           )}
@@ -520,7 +523,7 @@ function ETCLOVGPanel() {
             {scores.map((s, i) => (
               <span
                 key={i}
-                className={`etclovg-bar ${s < e.regression.threshold ? 'etclovg-bar-low' : ''}`}
+                className={`etclovg-bar ${e.regression.threshold != null && s < e.regression.threshold ? 'etclovg-bar-low' : ''}`}
                 style={{ height: `${Math.max((s / maxScore) * 18, 2)}px` }}
                 title={`${s.toFixed(1)}`}
               />

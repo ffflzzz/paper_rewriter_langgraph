@@ -55,6 +55,52 @@ async function apiDeleteSession(id: string) {
   } catch (e) { console.error('apiDeleteSession failed:', e); }
 }
 
+// ── localStorage → 服务端迁移 ──
+
+async function migrateLocalStorage() {
+  // 检查是否已迁移
+  if (localStorage.getItem('sessions_migrated')) return;
+
+  try {
+    // 迁移session列表
+    const sessionsRaw = localStorage.getItem('paper_rewriter_sessions');
+    if (sessionsRaw) {
+      const sessions = JSON.parse(sessionsRaw);
+      for (const s of sessions) {
+        await apiUpsertSession(s.id, s.title || '');
+        // 迁移消息
+        const msgsRaw = localStorage.getItem(`paper_rewriter_msgs_${s.id}`);
+        if (msgsRaw) {
+          const msgs = JSON.parse(msgsRaw);
+          for (const m of msgs) {
+            await apiAddMessage(s.id, m.id, m.role, m.content, m.toolName || '');
+          }
+        }
+      }
+    }
+
+    // 迁移当前threadId的消息（如果不在sessions列表里）
+    const currentId = localStorage.getItem('paper_rewriter_thread_id');
+    if (currentId) {
+      const msgsRaw = localStorage.getItem(`paper_rewriter_msgs_${currentId}`);
+      if (msgsRaw) {
+        const msgs = JSON.parse(msgsRaw);
+        if (msgs.length > 0) {
+          await apiUpsertSession(currentId, msgs.find((m: any) => m.role === 'user')?.content?.slice(0, 30) || '会话');
+          for (const m of msgs) {
+            await apiAddMessage(currentId, m.id, m.role, m.content, m.toolName || '');
+          }
+        }
+      }
+    }
+
+    localStorage.setItem('sessions_migrated', '1');
+    console.log('Sessions migrated from localStorage to server');
+  } catch (e) {
+    console.error('Migration failed:', e);
+  }
+}
+
 // ── 组件 ──
 
 export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }: SessionSidebarProps) {
@@ -62,19 +108,24 @@ export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }:
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    const refresh = async () => {
-      try {
-        const resp = await fetch(`${API}/sessions`);
-        if (resp.ok) {
-          const data = await resp.json();
-          setSessions(data.sessions || []);
-        }
-      } catch (e) {}
-    };
-    refresh();
+    // 首次加载时迁移localStorage数据
+    migrateLocalStorage().then(() => {
+      refresh();
+    });
+
     const interval = setInterval(refresh, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const refresh = async () => {
+    try {
+      const resp = await fetch(`${API}/sessions`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setSessions(data.sessions || []);
+      }
+    } catch (e) {}
+  };
 
   const formatTime = (ts: number) => {
     const diff = Date.now() - ts * 1000;
@@ -91,14 +142,8 @@ export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }:
   const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     await apiDeleteSession(sessionId);
-    const resp = await fetch(`${API}/sessions`);
-    if (resp.ok) {
-      const data = await resp.json();
-      setSessions(data.sessions || []);
-    }
-    if (currentThreadId === sessionId) {
-      onNewThread();
-    }
+    refresh();
+    if (currentThreadId === sessionId) onNewThread();
   };
 
   return (

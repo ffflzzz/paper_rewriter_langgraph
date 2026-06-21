@@ -91,19 +91,21 @@ function PipelineGraphPanel({ activeNode, nodeHistory }: {
       nodesRef.current = nodes;
 
       networkRef.current = new vis.Network(containerRef.current, { nodes, edges }, {
-        physics: false,
-        interaction: { dragNodes: false, zoomView: true, dragView: true, hover: true },
-        layout: {
-          improvedLayout: true,
-          hierarchical: {
-            enabled: true,
-            direction: 'LR',
-            sortMethod: 'directed',
-            levelSeparation: 200,
-            nodeSpacing: 70,
-            treeSpacing: 50,
+        physics: {
+          enabled: true,
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: {
+            gravitationalConstant: -80,
+            centralGravity: 0.01,
+            springLength: 200,
+            springConstant: 0.08,
+            damping: 0.4,
+            avoidOverlap: 0.5,
           },
+          stabilization: { iterations: 200 },
         },
+        interaction: { dragNodes: true, zoomView: true, dragView: true, hover: true },
+        layout: { improvedLayout: false },
       });
 
       networkRef.current.on('click', (params: any) => {

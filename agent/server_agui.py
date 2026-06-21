@@ -414,6 +414,13 @@ async def init_checkpointer():
         """AG-UI端点 — 兼容CopilotKit Runtime和直连两种格式"""
         body = await request.json()
 
+        # 处理info方法（CopilotKit Runtime查询agent信息）
+        if body.get("method") == "info":
+            return {
+                "version": "1.0.0",
+                "agents": {"paper_rewriter": {"name": "paper_rewriter", "description": "论文重写多Agent系统"}},
+            }
+        # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
         # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
         # 直连AG-UI格式: {threadId, runId, state, messages, ...}
         if "method" in body:

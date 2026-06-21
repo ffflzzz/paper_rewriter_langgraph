@@ -499,6 +499,20 @@ async def download_output_file(filename: str):
     )
 
 
+# ── ETCLOVG API ──
+
+@app.get("/api/etclovg")
+async def get_etclovg_status():
+    """ETCLOVG框架状态总览"""
+    from etclovg.governance import get_governance_status
+    from etclovg.versioning import get_version_info
+    from etclovg.evaluation import get_evaluation_status
+    return {
+        "governance": get_governance_status(),
+        "versioning": get_version_info(),
+        "evaluation": get_evaluation_status(),
+    }
+
 # ── 静态文件服务（在startup中挂载，确保AG-UI端点优先级更高） ──
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -513,16 +527,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# ── ETCLOVG API ──
 
-@app.get("/api/etclovg")
-async def get_etclovg_status():
-    """ETCLOVG框架状态总览"""
-    from etclovg.governance import get_governance_status
-    from etclovg.versioning import get_version_info
-    from etclovg.evaluation import get_evaluation_status
-    return {
-        "governance": get_governance_status(),
-        "versioning": get_version_info(),
-        "evaluation": get_evaluation_status(),
-    }

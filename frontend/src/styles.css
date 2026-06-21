@@ -1746,6 +1746,69 @@ body {
   padding: 6px 10px;
 }
 
+/* ── Chat Download Links ── */
+.chat-download-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.chat-download-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  color: #34d399;
+  text-decoration: none;
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  transition: all 0.2s;
+}
+
+.chat-download-link:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+}
+
+/* ── Progress Indicator ── */
+.progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  margin: 0 12px;
+}
+
+.progress-bar-container {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-tertiary, #334155);
+  border-radius: 3px;
+  overflow: hidden;
+  max-width: 200px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
 /* ═══════════════════════════════════════════════
    ETCLOVG 指标面板
    ═══════════════════════════════════════════════ */

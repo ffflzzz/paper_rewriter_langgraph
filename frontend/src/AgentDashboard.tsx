@@ -24,6 +24,12 @@ interface AgentState {
   currentNode: string | null;
   toolCalls: ToolCall[];
   events: AGUIEvent[];
+  progress: {
+    chaptersWritten: number;
+    totalChapters: number;
+    currentStep: string;
+    outlineDone: boolean;
+  };
 }
 
 // ── 图结构面板（从/api/graph动态加载） ──
@@ -254,6 +260,12 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
     currentNode: null,
     toolCalls: [],
     events: [],
+    progress: {
+      chaptersWritten: 0,
+      totalChapters: 0,
+      currentStep: '',
+      outlineDone: false,
+    },
   });
   const [isConnected, setIsConnected] = useState(false);
   const [nodeHistory, setNodeHistory] = useState<Record<string, { count: number; lastMsg: string; messages: string[] }>>({});
@@ -286,12 +298,40 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
                 else if (evt.type === 'RUN_ERROR' || evt.type === 'run_error') newStatus = 'error';
               }
 
+              // Extract progress from events
+              let chaptersWritten = prev.progress.chaptersWritten;
+              let totalChapters = prev.progress.totalChapters;
+              let currentStep = prev.progress.currentStep;
+              let outlineDone = prev.progress.outlineDone;
+              for (const evt of newEvents) {
+                const d = evt.data;
+                const msg = d.message || '';
+                // Detect outline completion
+                if (d.type === 'STEP_FINISHED' && msg.includes('大纲')) {
+                  outlineDone = true;
+                }
+                // Detect chapter writes
+                if ((d.type === 'STEP_FINISHED' || d.type === 'node_end') && (msg.includes('章节') || msg.includes('章写'))) {
+                  chaptersWritten++;
+                }
+                // Detect total chapters from outline
+                if (d.type === 'STEP_FINISHED' && msg.includes('章')) {
+                  const match = msg.match(/(\d+)\s*章/);
+                  if (match) totalChapters = Math.max(totalChapters, parseInt(match[1]));
+                }
+                // Track current step
+                if (d.type === 'STEP_STARTED' || d.type === 'node_start') {
+                  currentStep = d.stepName || d.node_id || d.message || '';
+                }
+              }
+
               return {
                 ...prev,
                 status: newStatus,
                 currentNode: extractActiveNode(allEvents),
                 toolCalls: extractToolCalls(allEvents),
                 events: allEvents,
+                progress: { chaptersWritten, totalChapters, currentStep, outlineDone },
               };
             });
 
@@ -335,7 +375,13 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
   }, [runtimeUrl]);
 
   const clearEvents = () => {
-    setState(prev => ({ ...prev, events: [], toolCalls: [], currentNode: null }));
+    setState(prev => ({
+      ...prev,
+      events: [],
+      toolCalls: [],
+      currentNode: null,
+      progress: { chaptersWritten: 0, totalChapters: 0, currentStep: '', outlineDone: false },
+    }));
     setNodeHistory({});
   };
 
@@ -349,6 +395,25 @@ export function AgentDashboard({ runtimeUrl }: { runtimeUrl: string }) {
     <div className="agent-dashboard">
       <div className="dashboard-header">
         <h3>🔍 Agent 监控</h3>
+        {/* Progress indicator */}
+        {state.status === 'running' && (
+          <div className="progress-indicator">
+            <div className="progress-bar-container">
+              <div
+                className="progress-bar-fill"
+                style={{
+                  width: state.progress.totalChapters > 0
+                    ? `${Math.min((state.progress.chaptersWritten / state.progress.totalChapters) * 100, 100)}%`
+                    : state.progress.outlineDone ? '30%' : '10%',
+                }}
+              />
+            </div>
+            <span className="progress-text">
+              {state.progress.currentStep && `📝 ${state.progress.currentStep}`}
+              {state.progress.totalChapters > 0 && ` · ${state.progress.chaptersWritten}/${state.progress.totalChapters} 章`}
+            </span>
+          </div>
+        )}
         <div className="dashboard-controls">
           <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
             {isConnected ? '● 已连接' : '○ 未连接'}

@@ -25,6 +25,7 @@ interface Message {
   content: string;
   toolName?: string;
   timestamp: number;
+  downloadLinks?: { name: string; url: string }[];
 }
 
 // Error Boundary
@@ -56,6 +57,38 @@ function ChatPanel({ threadId }: { threadId: string }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+
+  // Fetch output files after stream ends and show completion notification
+  const showCompletionNotification = useCallback(async () => {
+    try {
+      const resp = await fetch(`${window.location.origin}/pr/api/output/list`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const files = data.files || [];
+      if (files.length === 0) return;
+
+      const links = files.map((f: any) => ({
+        name: f.name,
+        url: `/pr/api/output/${encodeURIComponent(f.name)}`,
+      }));
+
+      const completionMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `✅ 重写完成！生成了 ${files.length} 个文件`,
+        timestamp: Date.now(),
+        downloadLinks: links,
+      };
+
+      setMessages(prev => {
+        const updated = [...prev, completionMsg];
+        apiAddMessage(threadId, completionMsg.id, 'assistant', completionMsg.content);
+        return updated;
+      });
+    } catch (e) {
+      console.error('Failed to fetch output files:', e);
+    }
+  }, [threadId]);
 
   // 从服务端加载消息
   useEffect(() => {
@@ -168,6 +201,9 @@ function ChatPanel({ threadId }: { threadId: string }) {
       finalMsgs.push(...toolMsgs);
       setMessages(finalMsgs);
       apiUpsertSession(threadId);
+
+      // Show completion notification with download links
+      await showCompletionNotification();
     } catch (e: any) {
       const errMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: `[错误] ${e.message}`, timestamp: Date.now() };
       const final = [...updated, errMsg];
@@ -192,6 +228,15 @@ function ChatPanel({ threadId }: { threadId: string }) {
         {messages.map(msg => (
           <div key={msg.id} className={`chat-msg ${msg.role}`}>
             <div className="chat-msg-content">{msg.content}</div>
+            {msg.downloadLinks && msg.downloadLinks.length > 0 && (
+              <div className="chat-download-links">
+                {msg.downloadLinks.map((link, i) => (
+                  <a key={i} href={link.url} download={link.name} className="chat-download-link">
+                    📄 {link.name}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {isStreaming && streamContent && (

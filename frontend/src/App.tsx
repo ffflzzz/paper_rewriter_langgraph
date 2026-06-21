@@ -1,7 +1,7 @@
 import "./styles.css";
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AgentDashboard } from "./AgentDashboard";
-import { SessionSidebar } from "./SessionSidebar";
+import { SessionSidebar, upsertSession } from "./SessionSidebar";
 
 // ── 直连AG-UI端点 ──
 
@@ -84,6 +84,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
     const updated = [...messages, userMsg];
     setMessages(updated);
     saveMessages(threadId, updated);
+    upsertSession(threadId);
     setInput('');
     setIsStreaming(true);
     setStreamContent('');
@@ -197,6 +198,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
 
       setMessages(finalMsgs);
       saveMessages(threadId, finalMsgs);
+      upsertSession(threadId);
     } catch (e: any) {
       const errMsg: Message = {
         id: crypto.randomUUID(),

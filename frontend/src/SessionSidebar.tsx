@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 
-interface RunMeta {
-  run_id: string;
-  paper_title?: string;
-  original_chars?: number;
-  created_at?: number;
-  status?: string;
+interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  lastActive: number;
+  messageCount: number;
 }
 
 interface SessionSidebarProps {
@@ -14,62 +14,113 @@ interface SessionSidebarProps {
   onNewThread: () => void;
 }
 
-export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }: SessionSidebarProps) {
-  const [runs, setRuns] = useState<RunMeta[]>([]);
-  const [isOpen, setIsOpen] = useState(true);
-  const [loading, setLoading] = useState(false);
+// ── Session localStorage 管理 ──
 
-  // 从服务端加载pipeline运行历史
+const SESSIONS_KEY = 'paper_rewriter_sessions';
+
+function loadSessions(): ChatSession[] {
+  const stored = localStorage.getItem(SESSIONS_KEY);
+  if (stored) {
+    try { return JSON.parse(stored); } catch {}
+  }
+  return [];
+}
+
+function saveSessions(sessions: ChatSession[]) {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+/** 外部调用：发消息时更新session */
+export function upsertSession(threadId: string, title?: string) {
+  const sessions = loadSessions();
+  const idx = sessions.findIndex(s => s.id === threadId);
+  const now = Date.now();
+
+  // 从localStorage读取消息数量
+  const msgsKey = `paper_rewriter_msgs_${threadId}`;
+  const msgs = localStorage.getItem(msgsKey);
+  const messageCount = msgs ? JSON.parse(msgs).length : 0;
+
+  // 用第一条用户消息作为标题
+  let sessionTitle = title;
+  if (!sessionTitle && msgs) {
+    try {
+      const parsed = JSON.parse(msgs);
+      const firstUser = parsed.find((m: any) => m.role === 'user');
+      sessionTitle = firstUser?.content?.slice(0, 30) || `会话 ${sessions.length + 1}`;
+    } catch {
+      sessionTitle = `会话 ${sessions.length + 1}`;
+    }
+  }
+
+  if (idx >= 0) {
+    sessions[idx].lastActive = now;
+    sessions[idx].messageCount = messageCount;
+    if (sessionTitle) sessions[idx].title = sessionTitle;
+  } else {
+    sessions.unshift({
+      id: threadId,
+      title: sessionTitle || `会话 ${sessions.length + 1}`,
+      createdAt: now,
+      lastActive: now,
+      messageCount,
+    });
+  }
+
+  saveSessions(sessions);
+}
+
+/** 外部调用：删除session */
+export function deleteSession(threadId: string) {
+  const sessions = loadSessions().filter(s => s.id !== threadId);
+  saveSessions(sessions);
+  localStorage.removeItem(`paper_rewriter_msgs_${threadId}`);
+}
+
+// ── 组件 ──
+
+export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }: SessionSidebarProps) {
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [isOpen, setIsOpen] = useState(true);
+
+  // 定期刷新session列表
   useEffect(() => {
-    loadRuns();
-    const interval = setInterval(loadRuns, 10000); // 每10秒刷新
+    const refresh = () => setSessions(loadSessions());
+    refresh();
+    const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const loadRuns = async () => {
-    try {
-      setLoading(true);
-      const base = window.location.origin;
-      const resp = await fetch(`${base}/pr/api/runs`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setRuns(data.runs || []);
-      }
-    } catch (e) {
-      console.error('Failed to load runs:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 格式化时间
-  const formatTime = (ts?: number) => {
-    if (!ts) return '';
-    const date = new Date(ts * 1000);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
+  const formatTime = (ts: number) => {
+    const diff = Date.now() - ts;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-
     if (minutes < 1) return '刚刚';
     if (minutes < 60) return `${minutes}分钟前`;
     if (hours < 24) return `${hours}小时前`;
     if (days < 7) return `${days}天前`;
-    return date.toLocaleDateString();
+    return new Date(ts).toLocaleDateString();
   };
 
-  // 格式化字数
-  const formatChars = (chars?: number) => {
-    if (!chars) return '';
-    if (chars < 1000) return `${chars}字`;
-    return `${(chars / 1000).toFixed(1)}K字`;
+  const handleDelete = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    deleteSession(sessionId);
+    setSessions(loadSessions());
+    if (currentThreadId === sessionId) {
+      const remaining = loadSessions();
+      if (remaining.length > 0) {
+        onSwitchThread(remaining[0].id);
+      } else {
+        onNewThread();
+      }
+    }
   };
 
   return (
     <div className={`session-sidebar ${isOpen ? 'open' : 'closed'}`}>
       <div className="session-header">
-        <h3>📋 运行历史</h3>
+        <h3>📋 会话</h3>
         <button className="btn-toggle" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? '◀' : '▶'}
         </button>
@@ -82,26 +133,29 @@ export function SessionSidebar({ currentThreadId, onSwitchThread, onNewThread }:
           </button>
 
           <div className="session-list">
-            {loading && runs.length === 0 ? (
-              <div className="session-empty">加载中...</div>
-            ) : runs.length === 0 ? (
-              <div className="session-empty">暂无运行记录</div>
+            {sessions.length === 0 ? (
+              <div className="session-empty">暂无会话</div>
             ) : (
-              runs.map(run => (
+              sessions.map(session => (
                 <div
-                  key={run.run_id}
-                  className={`session-item ${run.run_id === currentThreadId ? 'active' : ''}`}
-                  onClick={() => onSwitchThread(run.run_id)}
+                  key={session.id}
+                  className={`session-item ${session.id === currentThreadId ? 'active' : ''}`}
+                  onClick={() => onSwitchThread(session.id)}
                 >
                   <div className="session-info">
-                    <div className="session-title">
-                      {run.paper_title || run.run_id}
-                    </div>
+                    <div className="session-title">{session.title}</div>
                     <div className="session-meta">
-                      <span className="session-time">{formatTime(run.created_at)}</span>
-                      <span className="session-messages">{formatChars(run.original_chars)}</span>
+                      <span className="session-time">{formatTime(session.lastActive)}</span>
+                      <span className="session-messages">{session.messageCount} 条</span>
                     </div>
                   </div>
+                  <button
+                    className="btn-delete"
+                    onClick={(e) => handleDelete(e, session.id)}
+                    title="删除"
+                  >
+                    🗑
+                  </button>
                 </div>
               ))
             )}

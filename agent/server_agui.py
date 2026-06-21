@@ -387,6 +387,14 @@ async def init_checkpointer():
     # 桥接pipeline事件
     _setup_pipeline_bridge()
 
+    # 初始化session存储
+    try:
+        from etclovg.session_store import init_db
+        init_db()
+        print("Session store initialized")
+    except Exception as e:
+        print(f"Session store init failed: {e}")
+
     # ETCLOVG: 注册system prompt版本
     try:
         from etclovg.versioning import register_prompt

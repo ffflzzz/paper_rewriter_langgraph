@@ -66,6 +66,19 @@ def llm_call(
                     if reasoning:
                         content = reasoning
                 result[0] = content
+
+                # ETCLOVG: 记录token使用量
+                if resp.usage:
+                    try:
+                        from etclovg.governance import record_usage
+                        record_usage(
+                            model=LLM_MODEL,
+                            input_tokens=resp.usage.prompt_tokens or 0,
+                            output_tokens=resp.usage.completion_tokens or 0,
+                            node="pipeline",
+                        )
+                    except Exception:
+                        pass
             except Exception as e:
                 error[0] = e
 
@@ -120,10 +133,17 @@ def llm_call_stream(
             temperature=temperature,
             max_tokens=max_tokens,
             stream=True,
+            stream_options={"include_usage": True},
         )
         content_parts = []
         reasoning_parts = []
+        usage_input = 0
+        usage_output = 0
         for chunk in stream:
+            # ETCLOVG: 捕获usage信息（最后一个chunk）
+            if hasattr(chunk, 'usage') and chunk.usage:
+                usage_input = chunk.usage.prompt_tokens or 0
+                usage_output = chunk.usage.completion_tokens or 0
             if not chunk.choices:
                 continue
             delta = chunk.choices[0].delta
@@ -141,6 +161,20 @@ def llm_call_stream(
         content = "".join(content_parts)
         if not content and reasoning_parts:
             content = "".join(reasoning_parts)
+
+        # ETCLOVG: 记录流式调用的token使用量
+        if usage_input > 0 or usage_output > 0:
+            try:
+                from etclovg.governance import record_usage
+                record_usage(
+                    model=LLM_MODEL,
+                    input_tokens=usage_input,
+                    output_tokens=usage_output,
+                    node="pipeline_stream",
+                )
+            except Exception:
+                pass
+
         return content
     except Exception as e:
         try:

@@ -403,13 +403,22 @@ async def init_checkpointer():
 
     @app.post("/api/copilotkit")
     async def copilotkit_endpoint(request: Request):
-        """AG-UI端点 — 自动补state默认值"""
+        """AG-UI端点 — 兼容CopilotKit Runtime和直连两种格式"""
         body = await request.json()
-        # CopilotKit Runtime不传state，补默认值
-        if "state" not in body:
-            body["state"] = {}
-        # 转为RunAgentInput
-        input_data = RunAgentInput(**body)
+
+        # CopilotKit Runtime格式: {method, params, body}
+        if "method" in body and "body" in body:
+            inner = body["body"]
+            # 从params取agentId（如果需要）
+        else:
+            # 直连AG-UI格式: {threadId, runId, state, messages, ...}
+            inner = body
+
+        # 补state默认值
+        if "state" not in inner:
+            inner["state"] = {}
+
+        input_data = RunAgentInput(**inner)
 
         accept_header = request.headers.get("accept")
         encoder = EventEncoder(accept=accept_header)

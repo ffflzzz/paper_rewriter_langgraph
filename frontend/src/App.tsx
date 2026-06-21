@@ -2,7 +2,7 @@ import "./styles.css";
 import { useState, useCallback, useEffect, useRef, Component } from 'react';
 import type { ReactNode } from 'react';
 import { AgentDashboard } from "./AgentDashboard";
-import { SessionSidebar, upsertSession } from "./SessionSidebar";
+import { SessionSidebar, apiUpsertSession, apiAddMessage, apiGetMessages } from "./SessionSidebar";
 
 // 直连AG-UI端点
 const AGUI_URL = `${window.location.origin}/pr/api/copilotkit`;
@@ -27,16 +27,6 @@ interface Message {
   timestamp: number;
 }
 
-function getMessages(threadId: string): Message[] {
-  const stored = localStorage.getItem(`paper_rewriter_msgs_${threadId}`);
-  if (stored) { try { return JSON.parse(stored); } catch {} }
-  return [];
-}
-
-function saveMessages(threadId: string, messages: Message[]) {
-  localStorage.setItem(`paper_rewriter_msgs_${threadId}`, JSON.stringify(messages));
-}
-
 // Error Boundary
 class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: string}> {
   constructor(props: {children: ReactNode}) { super(props); this.state = { hasError: false, error: '' }; }
@@ -58,7 +48,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
 }
 
 function ChatPanel({ threadId }: { threadId: string }) {
-  const [messages, setMessages] = useState<Message[]>(() => getMessages(threadId));
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState('');
@@ -67,7 +57,20 @@ function ChatPanel({ threadId }: { threadId: string }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
 
-  useEffect(() => { setMessages(getMessages(threadId)); }, [threadId]);
+  // 从服务端加载消息
+  useEffect(() => {
+    const load = async () => {
+      const msgs = await apiGetMessages(threadId);
+      setMessages(msgs.map(m => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant' | 'tool',
+        content: m.content,
+        toolName: m.tool_name || '',
+        timestamp: m.timestamp * 1000,
+      })));
+    };
+    load();
+  }, [threadId]);
 
   const scrollToBottom = useCallback(() => {
     if (isAtBottomRef.current) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,8 +91,8 @@ function ChatPanel({ threadId }: { threadId: string }) {
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: text, timestamp: Date.now() };
     const updated = [...messages, userMsg];
     setMessages(updated);
-    saveMessages(threadId, updated);
-    upsertSession(threadId);
+    apiAddMessage(threadId, userMsg.id, 'user', text);
+    apiUpsertSession(threadId, text.slice(0, 30));
     setInput('');
     setIsStreaming(true);
     setStreamContent('');
@@ -127,17 +130,14 @@ function ChatPanel({ threadId }: { threadId: string }) {
           if (!line.startsWith('data: ')) continue;
           try {
             const evt = JSON.parse(line.slice(6));
-            // RAW chat model stream
             if (evt.type === 'RAW' && evt.event?.event === 'on_chat_model_stream') {
               const c = evt.event.data?.chunk?.content || '';
               if (c) { fullContent += c; setStreamContent(fullContent); }
             }
-            // AG-UI TEXT_MESSAGE
             if (evt.type === 'TEXT_MESSAGE_CONTENT') {
               const c = evt.content || '';
               if (c) { fullContent += c; setStreamContent(fullContent); }
             }
-            // Tool events
             if (evt.type === 'TOOL_CALL_START') {
               setToolCalls(prev => [...prev, { name: evt.name || evt.toolName || 'tool', status: 'running' }]);
             }
@@ -150,7 +150,9 @@ function ChatPanel({ threadId }: { threadId: string }) {
             if (evt.type === 'RAW' && evt.event?.event === 'on_tool_end') {
               const name = evt.event.name || 'tool';
               const output = String(evt.event.data?.output || '').slice(0, 200);
-              toolMsgs.push({ id: crypto.randomUUID(), role: 'tool', content: `[${name}] ${output}`, toolName: name, timestamp: Date.now() });
+              const toolMsg: Message = { id: crypto.randomUUID(), role: 'tool', content: `[${name}] ${output}`, toolName: name, timestamp: Date.now() };
+              toolMsgs.push(toolMsg);
+              apiAddMessage(threadId, toolMsg.id, 'tool', toolMsg.content, name);
               setToolCalls(prev => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: 'done' } : tc));
             }
           } catch {}
@@ -159,17 +161,18 @@ function ChatPanel({ threadId }: { threadId: string }) {
 
       const finalMsgs: Message[] = [...updated];
       if (fullContent) {
-        finalMsgs.push({ id: crypto.randomUUID(), role: 'assistant', content: fullContent, timestamp: Date.now() });
+        const assistantMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: fullContent, timestamp: Date.now() };
+        finalMsgs.push(assistantMsg);
+        apiAddMessage(threadId, assistantMsg.id, 'assistant', fullContent);
       }
       finalMsgs.push(...toolMsgs);
       setMessages(finalMsgs);
-      saveMessages(threadId, finalMsgs);
-      upsertSession(threadId);
+      apiUpsertSession(threadId);
     } catch (e: any) {
       const errMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: `[错误] ${e.message}`, timestamp: Date.now() };
       const final = [...updated, errMsg];
       setMessages(final);
-      saveMessages(threadId, final);
+      apiAddMessage(threadId, errMsg.id, 'assistant', errMsg.content);
     } finally {
       setIsStreaming(false);
       setStreamContent('');

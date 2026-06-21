@@ -511,6 +511,38 @@ async def download_output_file(filename: str):
     )
 
 
+# ── Session API ──
+
+@app.get("/api/sessions")
+async def api_list_sessions():
+    from etclovg.session_store import list_sessions
+    return {"sessions": list_sessions()}
+
+@app.post("/api/sessions")
+async def api_upsert_session(request: Request):
+    body = await request.json()
+    from etclovg.session_store import upsert_session
+    upsert_session(body["id"], body.get("title", ""))
+    return {"ok": True}
+
+@app.delete("/api/sessions/{session_id}")
+async def api_delete_session(session_id: str):
+    from etclovg.session_store import delete_session
+    delete_session(session_id)
+    return {"ok": True}
+
+@app.get("/api/sessions/{session_id}/messages")
+async def api_get_messages(session_id: str):
+    from etclovg.session_store import get_messages
+    return {"messages": get_messages(session_id)}
+
+@app.post("/api/sessions/{session_id}/messages")
+async def api_add_message(session_id: str, request: Request):
+    body = await request.json()
+    from etclovg.session_store import add_message
+    add_message(session_id, body["id"], body["role"], body["content"], body.get("tool_name", ""))
+    return {"ok": True}
+
 # ── ETCLOVG API ──
 
 @app.get("/api/etclovg")

@@ -420,7 +420,12 @@ async def init_checkpointer():
                 "version": "1.0.0",
                 "agents": {"paper_rewriter": {"name": "paper_rewriter", "description": "论文重写多Agent系统"}},
             }
-        # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
+
+        # 处理connect/stop方法（CopilotKit Runtime管理连接）
+        if body.get("method") in ("agent/connect", "agent/stop"):
+            return {"status": "ok"}
+
+        # agent/run 方法或直连格式：解析为RunAgentInput
         # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
         # 直连AG-UI格式: {threadId, runId, state, messages, ...}
         if "method" in body:

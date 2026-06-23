@@ -1,3 +1,21 @@
 #!/bin/bash
-cd /home/lex/paper_rewriter_langgraph
-exec python3 terminal_ui.py "$@"
+# Paper Rewriter — Entry point
+# Launches the TypeScript Ink TUI that connects to the AG-UI backend.
+
+TUI_DIR="$(dirname "$0")/tui"
+NODE="/home/lex/.hermes/node/bin/node"
+
+# Check if the TUI is built
+if [ ! -f "$TUI_DIR/dist/entry.js" ]; then
+    echo "Building TUI..."
+    cd "$TUI_DIR" && "$NODE" scripts/build.mjs
+    if [ $? -ne 0 ]; then
+        echo "Build failed. Falling back to Python terminal UI."
+        cd "$(dirname "$0")"
+        exec python3 terminal_ui.py "$@"
+    fi
+fi
+
+# Launch the TypeScript TUI
+cd "$(dirname "$0")"
+exec "$NODE" "$TUI_DIR/dist/entry.js" "$@"

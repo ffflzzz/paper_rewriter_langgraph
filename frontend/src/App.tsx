@@ -181,11 +181,6 @@ function ChatPanel({ threadId }: { threadId: string }) {
               setToolCalls(prev => [...prev, { name: evt.event.name || 'tool', status: 'running' }]);
             }
             if (evt.type === 'RAW' && evt.event?.event === 'on_tool_end') {
-              const name = evt.event.name || 'tool';
-              const output = String(evt.event.data?.output || '').slice(0, 200);
-              const toolMsg: Message = { id: crypto.randomUUID(), role: 'tool', content: `[${name}] ${output}`, toolName: name, timestamp: Date.now() };
-              toolMsgs.push(toolMsg);
-              apiAddMessage(threadId, toolMsg.id, 'tool', toolMsg.content, name);
               setToolCalls(prev => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: 'done' } : tc));
             }
           } catch {}
@@ -225,7 +220,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
             <p>请提供论文标题或关键词，我会搜索相关论文。</p>
           </div>
         )}
-        {messages.map(msg => (
+        {messages.filter(msg => msg.role !== 'tool').map(msg => (
           <div key={msg.id} className={`chat-msg ${msg.role}`}>
             <div className="chat-msg-content">{msg.content}</div>
             {msg.downloadLinks && msg.downloadLinks.length > 0 && (

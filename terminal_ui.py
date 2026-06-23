@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Terminal UI for Paper Rewriter LangGraph Agent — LOCAL mode.
 
-Clean full-screen TUI inspired by Hermes Agent's layout.
+Clean full-screen TUI inspired by Hermes Agent's layout and behavior.
 Uses alternate screen buffer for immersive experience.
 Runs the agent graph in-process. No remote server needed.
+
+CRITICAL: Streaming updates in place using cursor positioning,
+not by printing new lines.
 
 Usage:
     python3 terminal_ui.py [--run-id RUN_ID]
@@ -101,9 +104,11 @@ def _term_height() -> int:
     return _term_size()[1]
 
 
+_ANSI_RE = re.compile(r'\033\[[0-9;]*m')
+
 def _visible_len(text: str) -> int:
     """Estimate visible length (strip ANSI codes)."""
-    return len(re.sub(r'\033\[[0-9;]*m', '', text))
+    return len(_ANSI_RE.sub('', text))
 
 
 def _wrap_text(text: str, width: int) -> list:
@@ -129,23 +134,59 @@ def _wrap_text(text: str, width: int) -> list:
     return lines if lines else [""]
 
 
+def _truncate_to_width(text: str, width: int) -> str:
+    """Truncate text to fit within width, preserving ANSI codes."""
+    if _visible_len(text) <= width:
+        return text
+    # Simple approach: truncate by visible chars
+    result = []
+    vis = 0
+    i = 0
+    in_escape = False
+    for ch in text:
+        if ch == '\033':
+            in_escape = True
+            result.append(ch)
+            continue
+        if in_escape:
+            result.append(ch)
+            if ch == 'm':
+                in_escape = False
+            continue
+        if vis >= width:
+            break
+        result.append(ch)
+        vis += 1
+    return ''.join(result)
+
+
 # ═══════════════════════════════════════════════════════════════
 # Full-Screen TUI Renderer
 # ═══════════════════════════════════════════════════════════════
 class TUIRenderer:
-    """Manages the full-screen alternate-buffer TUI."""
+    """Manages the full-screen alternate-buffer TUI.
+
+    Layout (top to bottom):
+      Row 1:       Header bar
+      Row 2..h-3:  Transcript area (scrollable, fills middle)
+      Row h-2:     Status rule (thin green separator)
+      Row h-1:     Input area with ▸ prompt
+      Row h:       Status bar
+    """
 
     def __init__(self):
         self._alt_screen = False
         self._transcript: list[str] = []   # lines of transcript (with ANSI)
         self._scroll_offset = 0            # lines scrolled up from bottom
+        self._streaming_row = 0            # row position of streaming line
+        self._streaming_active = False     # whether streaming is in progress
 
     # ── Alternate screen ──
 
     def enter_alt_screen(self):
         if not self._alt_screen:
-            sys.stdout.write(CURSOR_HIDE)
             sys.stdout.write(ALT_SCREEN_ON)
+            sys.stdout.write(CURSOR_HIDE)
             sys.stdout.flush()
             self._alt_screen = True
 
@@ -181,23 +222,29 @@ class TUIRenderer:
     def add_line(self, line: str):
         self._transcript.append(line)
 
-    # ── Full-screen redraw ──
+    # ── Layout calculations ──
 
-    def draw(self, session, status: str = "ready"):
-        """Redraw the entire screen.
-
-        Layout (top to bottom):
-          Row 1:    Header
-          Row 2..h-3: Transcript area (scrollable, fills middle)
-          Row h-2:  Status rule (thin green separator)
-          Row h-1:  Input area with ▸ prompt
-          Row h:    Status bar
-        """
+    def _layout(self) -> tuple:
+        """Return (w, h, header_row, transcript_start, transcript_rows, sep_row, input_row, status_row)."""
         w, h = _term_size()
-
         # Layout: header(1) + transcript area + statusrule(1) + input(1) + statusbar(1)
         # That's 4 reserved lines; transcript gets the rest
         transcript_rows = max(1, h - 4)
+        return (
+            w, h,
+            1,              # header_row
+            2,              # transcript_start
+            transcript_rows,
+            h - 2,          # sep_row
+            h - 1,          # input_row
+            h,              # status_row
+        )
+
+    # ── Full-screen redraw ──
+
+    def draw(self, session, status: str = "ready"):
+        """Redraw the entire screen."""
+        w, h, header_row, t_start, t_rows, sep_row, input_row, status_row = self._layout()
 
         # Hide cursor during redraw
         sys.stdout.write(CURSOR_HIDE)
@@ -215,112 +262,146 @@ class TUIRenderer:
             f" {DGREEN}│{RESET}"
             f" {DGREEN}turns:{RESET}{GREEN}{session.turn_count}{RESET}"
         )
-        self._write(header)
-        # Pad rest of header line
-        hpad = w - _visible_len(header)
-        if hpad > 0:
-            self._write(f"{' ' * hpad}")
+        self._move_to(header_row, 1)
+        self._clear_line()
+        self._write(_truncate_to_width(header, w))
 
         # ── Transcript area (rows 2 .. h-3) ──
         # Calculate which lines to show (bottom-aligned, scrolled up)
         total_lines = len(self._transcript)
-        # Show the last `transcript_rows` lines (minus scroll offset)
         end_idx = max(0, total_lines - self._scroll_offset)
-        start_idx = max(0, end_idx - transcript_rows)
+        start_idx = max(0, end_idx - t_rows)
         visible = self._transcript[start_idx:end_idx]
 
-        row = 2
+        row = t_start
         for line in visible:
             self._move_to(row, 1)
             self._clear_line()
-            # Truncate to terminal width
-            vl = _visible_len(line)
-            if vl > w:
-                # Simple truncation — strip from the end
-                display = line[:w + (len(line) - vl)]
-            else:
-                display = line
+            display = _truncate_to_width(line, w)
             self._write(display)
             row += 1
 
         # Fill remaining transcript rows with blank
-        while row < 2 + transcript_rows:
+        while row < t_start + t_rows:
             self._move_to(row, 1)
             self._clear_line()
             row += 1
 
         # ── Status rule / separator (row h-2) ──
-        sep_row = h - 2
         self._move_to(sep_row, 1)
+        self._clear_line()
         self._write(f"{DGREEN}{'─' * w}{RESET}")
 
         # ── Input area (row h-1) ──
-        input_row = h - 1
         self._move_to(input_row, 1)
         self._clear_line()
         self._write(f"{BGREEN}{BOLD}▸{RESET} ")
 
         # ── Status bar (row h) ──
-        status_row = h
         self._move_to(status_row, 1)
         self._clear_line()
         left = f"▸ {status}"
         right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
-        mid_pad = max(1, w - len(left) - len(right) - 2)
+        mid_pad = max(1, w - _visible_len(left) - _visible_len(right) - 2)
         bar = f"{DGREEN}{left}{' ' * mid_pad}{right}{RESET}"
-        # Pad to fill width
-        bar_visible = _visible_len(bar)
-        if bar_visible < w:
-            bar = bar[:-len(RESET)] + " " * (w - bar_visible) + RESET
-        self._write(bar)
+        self._write(_truncate_to_width(bar, w))
 
         # Show cursor on input line after the prompt
         self._move_to(input_row, 3)
         sys.stdout.write(CURSOR_SHOW)
         sys.stdout.flush()
 
-    def draw_streaming(self, session):
-        """Lightweight: update only the last transcript line and status bar."""
-        w, h = _term_size()
-        transcript_rows = max(1, h - 4)
+    # ── Streaming update: update ONLY the last transcript line in place ──
 
-        # Move to last line of transcript area and update it
-        row = min(2 + transcript_rows - 1, h - 3)
-        if self._transcript:
-            last_line = self._transcript[-1]
-            self._move_to(row, 1)
-            self._clear_line()
-            truncated = last_line[:w-1]
-            self._write(truncated)
+    def begin_streaming(self, session):
+        """Mark the start of a streaming phase.
 
-        # Update status bar
-        self._move_to(h, 1)
-        self._clear_line()
-        status_text = f" {GREEN}▸{RESET} {DGREEN}streaming...{RESET}"
-        right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
-        padding = max(1, w - _visible_len(status_text) - _visible_len(right) - 2)
-        self._write(f"{status_text}{' ' * padding}{DGREEN}{right}{RESET}")
+        Adds a new empty line to transcript and records its screen row position.
+        During streaming, only this row will be updated (no full redraw).
+        """
+        self._streaming_active = True
+        # Add a placeholder line for the streaming content
+        prefix = f"{GREEN}│{RESET} "
+        self.add_line(prefix)
+        # Calculate the screen row for this line
+        w, h, header_row, t_start, t_rows, sep_row, input_row, status_row = self._layout()
+        total_lines = len(self._transcript)
+        end_idx = max(0, total_lines - self._scroll_offset)
+        start_idx = max(0, end_idx - t_rows)
+        # The last line is at position (total_lines - 1 - start_idx) relative to t_start
+        line_idx = (total_lines - 1) - start_idx
+        self._streaming_row = t_start + line_idx
         sys.stdout.flush()
 
-    def draw_input_line(self, session, status: str = "ready"):
-        """Lightweight: just redraw the input line + status bar."""
-        w, h = _term_size()
-        input_row = h - 1
-        self._move_to(input_row, 1)
-        self._clear_line()
-        self._write(f"{BGREEN}{BOLD}▸{RESET} ")
+    def update_streaming(self, text: str, session):
+        """Update the streaming line in place. No full redraw.
 
+        Args:
+            text: The accumulated text (without the prefix).
+            session: Session object for status bar update.
+        """
+        if not self._streaming_active:
+            return
+
+        w = _term_width()
+        # Update the transcript buffer
+        line = f"{GREEN}│{RESET} {GREEN}{text}{RESET}"
+        self._transcript[-1] = line
+
+        # Update ONLY the streaming row
+        row = self._streaming_row
+        if row < 2:  # safety check
+            return
+
+        self._move_to(row, 1)
+        self._clear_line()
+        self._write(_truncate_to_width(line, w))
+
+        # Update status bar with streaming indicator
+        self._update_status_bar(session, "streaming...")
+
+        # Keep cursor hidden during streaming updates
+        sys.stdout.write(CURSOR_HIDE)
+        sys.stdout.flush()
+
+    def end_streaming(self, session, final_text: str = ""):
+        """Finalize streaming and do a full redraw.
+
+        Args:
+            final_text: The final accumulated text (if different from last update).
+            session: Session object.
+        """
+        self._streaming_active = False
+
+        if final_text and self._transcript:
+            line = f"{GREEN}│{RESET} {GREEN}{final_text}{RESET}"
+            self._transcript[-1] = line
+
+        # Full redraw to finalize everything
+        self.draw(session, "idle")
+
+    def _update_status_bar(self, session, status: str):
+        """Lightweight: just update the status bar row."""
+        w, h = _term_size()
         status_row = h
         self._move_to(status_row, 1)
         self._clear_line()
         left = f"▸ {status}"
         right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
-        mid_pad = max(1, w - len(left) - len(right) - 2)
+        mid_pad = max(1, w - _visible_len(left) - _visible_len(right) - 2)
         bar = f"{DGREEN}{left}{' ' * mid_pad}{right}{RESET}"
-        bar_visible = _visible_len(bar)
-        if bar_visible < w:
-            bar = bar[:-len(RESET)] + " " * (w - bar_visible) + RESET
-        self._write(bar)
+        self._write(_truncate_to_width(bar, w))
+        sys.stdout.flush()
+
+    def draw_input_line(self, session, status: str = "ready"):
+        """Lightweight: just redraw the input line + status bar."""
+        w, h, _, _, _, _, input_row, status_row = self._layout()
+
+        self._move_to(input_row, 1)
+        self._clear_line()
+        self._write(f"{BGREEN}{BOLD}▸{RESET} ")
+
+        self._update_status_bar(session, status)
 
         self._move_to(input_row, 3)
         sys.stdout.flush()
@@ -417,8 +498,7 @@ def show_turn_separator():
 def show_user_input(text: str):
     """Echo user input in transcript."""
     # Add turn separator before each new user message (except the first)
-    # Count existing user messages in transcript
-    user_count = sum(1 for l in _tui._transcript if l.startswith(f"{BWHITE}{BOLD}▸ You:"))
+    user_count = sum(1 for l in _tui._transcript if "▸ You:" in l)
     if user_count > 0:
         show_turn_separator()
     _transcript_print(f"{BWHITE}{BOLD}▸ You:{RESET} {WHITE}{text}{RESET}")
@@ -650,7 +730,7 @@ async def run_agent_turn(session: Session, user_input: str):
     """Run one agent turn with HITL support.
 
     Handles:
-    - Normal streaming with token-by-token display
+    - Normal streaming with token-by-token IN-PLACE display
     - Interrupt-based tool confirmation prompts
     - KeyboardInterrupt (Ctrl+C) for pause/inject/resume
     """
@@ -664,7 +744,7 @@ async def run_agent_turn(session: Session, user_input: str):
     config = {"recursion_limit": 100, "configurable": {"thread_id": session.run_id}}
     input_data = {"messages": session.messages}
     had_content = False
-    current_agent_line = ""
+    current_text = ""
 
     # ── HITL loop: repeat until no more interrupts ──
     while True:
@@ -687,34 +767,34 @@ async def run_agent_turn(session: Session, user_input: str):
                 if kind == "on_chat_model_stream":
                     chunk = data.get("chunk")
                     if chunk and hasattr(chunk, "content") and chunk.content:
+                        token = chunk.content
                         if not is_streaming:
+                            # First token: begin streaming (adds placeholder line, records row)
                             is_streaming = True
                             had_content = True
-                            current_agent_line = f"{GREEN}│{RESET} "
-                        # Build up text — flush to transcript periodically
-                        token = chunk.content
-                        current_agent_line += f"{GREEN}{token}{RESET}"
-                        # For streaming display: add to transcript and redraw
-                        # We'll accumulate and flush on model end
-                        # For now, update transcript with partial line
-                        # Remove previous partial if it's still being built
-                        if _tui._transcript and _tui._transcript[-1].startswith(f"{GREEN}│{RESET}"):
-                            _tui._transcript[-1] = current_agent_line
-                        else:
-                            _tui.add_line(current_agent_line)
-                        _tui.draw_streaming(session)
+                            current_text = ""
+                            _tui.begin_streaming(session)
+
+                        # Accumulate text
+                        current_text += token
+
+                        # Update ONLY the streaming line in place
+                        _tui.update_streaming(current_text, session)
 
                 # ── LLM done (may have tool_calls) ──
                 elif kind == "on_chat_model_end":
                     if is_streaming:
+                        # Finalize streaming: do full redraw
+                        _tui.end_streaming(session, current_text)
                         is_streaming = False
-                        current_agent_line = ""
+                        current_text = ""
+
                     output = data.get("output")
                     if isinstance(output, AIMessage) and output.tool_calls:
                         for tc in output.tool_calls:
                             session.tool_call_count += 1
                             show_tool_call(tc.get("name", "?"), tc.get("args", {}))
-                    _tui.draw(session, "processing...")
+                        _tui.draw(session, "processing...")
 
                 # ── Track tool names from tool start ──
                 elif kind == "on_tool_start":
@@ -723,8 +803,9 @@ async def run_agent_turn(session: Session, user_input: str):
                 # ── Tool finished ──
                 elif kind == "on_tool_end":
                     if is_streaming:
+                        _tui.end_streaming(session, current_text)
                         is_streaming = False
-                        current_agent_line = ""
+                        current_text = ""
                     tool_output = data.get("output", "")
                     tname = last_tool_name or ename or "tool"
                     if isinstance(tool_output, ToolMessage):
@@ -735,8 +816,9 @@ async def run_agent_turn(session: Session, user_input: str):
 
         except KeyboardInterrupt:
             if is_streaming:
+                _tui.end_streaming(session, current_text)
                 is_streaming = False
-                current_agent_line = ""
+                current_text = ""
             got_interrupt = True
 
             action, msg = _handle_ctrl_c_pause(session)
@@ -758,8 +840,9 @@ async def run_agent_turn(session: Session, user_input: str):
 
         except Exception as e:
             if is_streaming:
+                _tui.end_streaming(session, current_text)
                 is_streaming = False
-                current_agent_line = ""
+                current_text = ""
             got_error = True
             _transcript_print(f"{BRED}[!] Error: {type(e).__name__}: {e}{RESET}")
             if os.getenv("DEBUG"):

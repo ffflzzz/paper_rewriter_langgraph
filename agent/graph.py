@@ -29,6 +29,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.graph import MessagesState
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_core.tools import tool
+from langgraph.types import interrupt
 
 
 # ─────────────────────────────────────────────
@@ -147,6 +148,17 @@ def write_chapter(chapter_id: str, content: str) -> str:
         content: 章节内容，纯文本，禁止markdown
     """
     _log(f"write_chapter: {chapter_id}, {len(content)} 字")
+    
+    # ── HITL: 确认后才写入 ──
+    decision = interrupt({
+        "tool": "write_chapter",
+        "reason": f"即将写入章节 {chapter_id}（{len(content)} 字）",
+        "args": {"chapter_id": chapter_id, "chars": len(content)},
+    })
+    if str(decision).lower() in ("no", "n", "skip"):
+        _log(f"write_chapter: 用户取消 ({decision})")
+        return f"用户取消了写入 {chapter_id}"
+    
     run_dir = _get_run_dir(_current_run_id)
     chapters_dir = os.path.join(run_dir, "chapters")
     os.makedirs(chapters_dir, exist_ok=True)
@@ -263,6 +275,16 @@ def save_outline(outline_text: str) -> str:
     Args:
         outline_text: 大纲内容
     """
+    # ── HITL: 确认后才保存 ──
+    decision = interrupt({
+        "tool": "save_outline",
+        "reason": f"即将保存大纲（{len(outline_text)} 字）",
+        "args": {"chars": len(outline_text)},
+    })
+    if str(decision).lower() in ("no", "n", "skip"):
+        _log(f"save_outline: 用户取消 ({decision})")
+        return "用户取消了保存大纲"
+    
     run_dir = _get_run_dir(_current_run_id)
     outline_path = os.path.join(run_dir, "outline.txt")
     with open(outline_path, "w", encoding="utf-8") as f:
@@ -322,6 +344,16 @@ def download_paper(paper_id: str, source: str = "arxiv") -> str:
     """
     _log(f"download_paper: paper_id='{paper_id}', source='{source}'")
     
+    # ── HITL: 确认后才下载 ──
+    decision = interrupt({
+        "tool": "download_paper",
+        "reason": f"即将下载论文 '{paper_id}' (来源: {source})",
+        "args": {"paper_id": paper_id, "source": source},
+    })
+    if str(decision).lower() in ("no", "n", "skip"):
+        _log(f"download_paper: 用户取消 ({decision})")
+        return "用户取消了下载操作"
+    
     try:
         from .paper_search import download_paper as dl_paper
         result = dl_paper(paper_id, _current_run_id, source)
@@ -343,8 +375,108 @@ def download_paper(paper_id: str, source: str = "arxiv") -> str:
         return f"下载失败: {str(e)}"
 
 
+@tool
+def generate_pdf(run_id: str = "") -> str:
+    """将所有已写章节合并生成一个PDF文件。写完所有章节后调用此工具生成最终PDF。
+
+    Args:
+        run_id: 运行ID，为空则使用当前运行ID
+    """
+    target_run_id = run_id or _current_run_id
+    _log(f"generate_pdf: run_id='{target_run_id}'")
+
+    run_dir = _get_run_dir(target_run_id)
+    chapters_dir = os.path.join(run_dir, "chapters")
+
+    if not os.path.isdir(chapters_dir):
+        return "错误：章节目录不存在"
+
+    # Collect chapter files sorted by number
+    chapter_files = sorted(
+        [f for f in os.listdir(chapters_dir) if f.endswith(".txt")],
+        key=lambda x: int(re.search(r'\d+', x).group()) if re.search(r'\d+', x) else 0,
+    )
+    if not chapter_files:
+        return "错误：没有找到任何章节文件"
+
+    try:
+        from fpdf import FPDF
+
+        # Find a CJK font
+        font_path = None
+        candidates = [
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        ]
+        for fp in candidates:
+            if os.path.exists(fp):
+                font_path = fp
+                break
+
+        # If no known font, try to find any CJK font
+        if not font_path:
+            import glob
+            for pattern in [
+                "/usr/share/fonts/**/*CJK*",
+                "/usr/share/fonts/**/*wqy*",
+                "/usr/share/fonts/**/*noto*",
+                "/usr/share/fonts/**/*droid*",
+            ]:
+                matches = glob.glob(pattern, recursive=True)
+                if matches:
+                    font_path = matches[0]
+                    break
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+
+        # Add CJK font once if available
+        use_cjk = bool(font_path)
+        if use_cjk:
+            pdf.add_font("CJK", "", font_path, uni=True)
+
+        for ch_file in chapter_files:
+            ch_path = os.path.join(chapters_dir, ch_file)
+            with open(ch_path, "r", encoding="utf-8") as f:
+                text = f.read()
+
+            ch_name = os.path.splitext(ch_file)[0]
+            pdf.add_page()
+
+            # Chapter title
+            if use_cjk:
+                pdf.set_font("CJK", size=18)
+            else:
+                pdf.set_font("Helvetica", "B", 18)
+            pdf.cell(0, 12, ch_name, ln=True, align="C")
+            pdf.ln(6)
+
+            # Chapter body
+            if use_cjk:
+                pdf.set_font("CJK", size=11)
+            else:
+                pdf.set_font("Helvetica", size=11)
+            pdf.multi_cell(0, 6, text)
+
+        output_path = os.path.join(run_dir, "output.pdf")
+        pdf.output(output_path)
+        size_kb = os.path.getsize(output_path) / 1024
+        _log(f"generate_pdf: saved {output_path} ({size_kb:.0f} KB)")
+        return f"PDF已生成: {output_path} ({size_kb:.0f} KB, {len(chapter_files)} 章)"
+
+    except Exception as e:
+        _log(f"generate_pdf error: {e}")
+        import traceback
+        _log(traceback.format_exc())
+        return f"PDF生成失败: {str(e)}"
+
+
 # 工具列表
-tools = [search_original, read_original_segment, write_chapter, read_chapter, list_chapters, self_review_chapter, save_outline, search_paper, download_paper]
+tools = [search_original, read_original_segment, write_chapter, read_chapter, list_chapters, self_review_chapter, save_outline, search_paper, download_paper, generate_pdf]
 tools_by_name = {t.name: t for t in tools}
 
 
@@ -417,7 +549,12 @@ SYSTEM_PROMPT = """你是论文重写专家。任务：将一篇学术论文重�
 重要规则：
 - 不要试图一次读完全部原文。用 search_original 按关键词查找需要的段落。
 - 你必须覆盖原文的所有主要概念和章节，不能只写6章就停。写完后用 list_chapters 检查数量。
-- 如果原文有27万字，你至少需要写15章才能充分覆盖。"""
+- 如果原文有27万字，你至少需要写15章才能充分覆盖。
+
+PDF生成规则：
+- 每次调用 list_chapters 后，如果已写章节数 >= 3，你必须立即调用 generate_pdf 工具生成PDF。
+- generate_pdf 不需要参数，它会自动使用当前run的章节。
+- 生成PDF后，在最终回复中告知用户PDF已生成及路径。"""
 
 
 def agent_node(state: MessagesState) -> dict:

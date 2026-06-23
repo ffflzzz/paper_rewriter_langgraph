@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/lex/paper_rewriter_langgraph
+exec python3 terminal_ui.py "$@"

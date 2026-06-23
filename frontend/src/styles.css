@@ -278,7 +278,8 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .dashboard-header {
@@ -1889,4 +1890,324 @@ body {
 
 .etclovg-bar-low {
   background: var(--error, #ef4444);
+}
+
+/* ═══════════════════════════════════════════════
+   重设计的 Agent Dashboard 组件样式
+   ═══════════════════════════════════════════════ */
+
+/* ── 进度面板 ── */
+.dashboard-progress-panel {
+  padding: var(--spacing-lg, 16px);
+  background: var(--bg-secondary, #1e293b);
+  border-bottom: 1px solid var(--border-primary, #334155);
+}
+
+.progress-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+.progress-status {
+  font-size: var(--text-lg, 14px);
+  font-weight: 600;
+}
+
+.progress-percentage {
+  font-size: var(--text-2xl, 20px);
+  font-weight: 700;
+  color: var(--text-primary, #e2e8f0);
+  font-family: var(--font-mono, monospace);
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary, #334155);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+.progress-bar-elapsed {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary, #7c3aed), var(--info, #3b82f6));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  min-width: 0;
+}
+
+.progress-panel-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 12px);
+  flex-wrap: wrap;
+}
+
+.progress-current-step {
+  font-size: var(--text-base, 13px);
+  color: var(--text-primary, #e2e8f0);
+  font-weight: 500;
+}
+
+.progress-chapters {
+  font-size: var(--text-sm, 12px);
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── 工具调用卡片 ── */
+.tc-section {
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
+}
+
+.tc-section-title {
+  font-size: var(--text-base, 13px);
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 var(--spacing-md, 12px) 0;
+}
+
+.tc-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md, 12px);
+}
+
+.tc-card {
+  background: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--spacing-md, 12px);
+  transition: all 0.2s;
+  border-left: 3px solid var(--info, #3b82f6);
+}
+
+.tc-card:hover {
+  border-color: var(--border-hover, #475569);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tc-card-running {
+  border-left-color: var(--warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.tc-card-complete {
+  border-left-color: var(--success, #10b981);
+}
+
+.tc-card-error {
+  border-left-color: var(--error, #ef4444);
+}
+
+.tc-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+.tc-card-icon {
+  font-size: var(--text-xl, 16px);
+  flex-shrink: 0;
+}
+
+.tc-card-label {
+  font-weight: 600;
+  font-size: var(--text-lg, 14px);
+  color: var(--text-primary, #e2e8f0);
+  flex: 1;
+}
+
+.tc-card-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-primary, #334155);
+  border-top-color: var(--warning, #f59e0b);
+  border-radius: 50%;
+  animation: tc-spin 1s linear infinite;
+}
+
+@keyframes tc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tc-card-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tc-card-done {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success, #10b981);
+}
+
+.tc-card-err {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error, #ef4444);
+}
+
+.tc-card-args {
+  font-size: var(--text-sm, 12px);
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: var(--spacing-xs, 4px);
+}
+
+.tc-card-args-label {
+  color: var(--text-muted, #6b7280);
+}
+
+.tc-card-result {
+  font-size: var(--text-sm, 12px);
+  color: var(--success, #10b981);
+  margin-bottom: var(--spacing-xs, 4px);
+}
+
+.tc-card-result-arrow {
+  color: var(--text-muted, #6b7280);
+  margin-right: 4px;
+}
+
+.tc-card-running-text {
+  font-size: var(--text-sm, 12px);
+  color: var(--warning, #f59e0b);
+  font-style: italic;
+}
+
+.tc-card-duration {
+  font-size: var(--text-xs, 11px);
+  color: var(--text-muted, #6b7280);
+  margin-top: var(--spacing-xs, 4px);
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── 时间线面板 ── */
+.tl-section {
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
+}
+
+.tl-section-title {
+  font-size: var(--text-base, 13px);
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 var(--spacing-md, 12px) 0;
+}
+
+.tl-track {
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-node {
+  display: flex;
+  gap: var(--spacing-md, 12px);
+  min-height: 48px;
+}
+
+.tl-dot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.tl-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border-primary, #334155);
+  background: var(--bg-primary, #0f172a);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.tl-dot-running {
+  border-color: var(--warning, #f59e0b);
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+.tl-dot-complete {
+  border-color: var(--success, #10b981);
+  background: var(--success, #10b981);
+}
+
+.tl-dot-error {
+  border-color: var(--error, #ef4444);
+  background: var(--error, #ef4444);
+}
+
+.tl-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border-primary, #334155);
+  min-height: 16px;
+}
+
+.tl-content {
+  flex: 1;
+  padding-bottom: var(--spacing-md, 12px);
+}
+
+.tl-name {
+  font-size: var(--text-base, 13px);
+  font-weight: 500;
+  color: var(--text-primary, #e2e8f0);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+}
+
+.tl-live-indicator {
+  color: var(--warning, #f59e0b);
+  animation: pulse 1s infinite;
+  font-size: 10px;
+}
+
+.tl-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  margin-top: 2px;
+}
+
+.tl-time {
+  font-size: var(--text-xs, 11px);
+  color: var(--text-muted, #6b7280);
+  font-family: var(--font-mono, monospace);
+}
+
+.tl-duration {
+  font-size: var(--text-xs, 11px);
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+}
+
+.tl-running-text {
+  font-size: var(--text-xs, 11px);
+  color: var(--warning, #f59e0b);
+  font-style: italic;
+}
+
+/* ── 图面板包装器 ── */
+.graph-panel-wrapper {
+  padding: 0 var(--spacing-lg, 16px);
+}
+
+.graph-panel-wrapper .section-title {
+  font-size: var(--text-base, 13px);
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 var(--spacing-sm, 8px) 0;
 }

@@ -101,3 +101,13 @@
 {"timestamp": 1782226367.1306584, "model": "mimo-v2.5-pro", "input_tokens": 15663, "output_tokens": 83, "total_tokens": 15746, "cost": 0.015829, "run_id": "", "node": "agent", "prompt_version": null}
 {"timestamp": 1782226369.2362137, "model": "mimo-v2.5-pro", "input_tokens": 17983, "output_tokens": 88, "total_tokens": 18071, "cost": 0.018158999999999998, "run_id": "", "node": "agent", "prompt_version": null}
 {"timestamp": 1782226372.8953297, "model": "mimo-v2.5-pro", "input_tokens": 19891, "output_tokens": 84, "total_tokens": 19975, "cost": 0.020059, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227441.4632287, "model": "mimo-v2.5-pro", "input_tokens": 1868, "output_tokens": 97, "total_tokens": 1965, "cost": 0.0020620000000000005, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227446.7524652, "model": "mimo-v2.5-pro", "input_tokens": 1982, "output_tokens": 201, "total_tokens": 2183, "cost": 0.002384, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227461.6226737, "model": "mimo-v2.5-pro", "input_tokens": 2977, "output_tokens": 144, "total_tokens": 3121, "cost": 0.0032649999999999997, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227583.746562, "model": "mimo-v2.5-pro", "input_tokens": 1868, "output_tokens": 70, "total_tokens": 1938, "cost": 0.002008, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227602.4485414, "model": "mimo-v2.5-pro", "input_tokens": 2760, "output_tokens": 115, "total_tokens": 2875, "cost": 0.00299, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782227678.035635, "model": "mimo-v2.5-pro", "input_tokens": 1709, "output_tokens": 140, "total_tokens": 1849, "cost": 0.0019890000000000003, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782228147.2684338, "model": "mimo-v2.5-pro", "input_tokens": 1709, "output_tokens": 96, "total_tokens": 1805, "cost": 0.0019010000000000001, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782228503.475985, "model": "mimo-v2.5-pro", "input_tokens": 1709, "output_tokens": 127, "total_tokens": 1836, "cost": 0.001963, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782228509.1966171, "model": "mimo-v2.5-pro", "input_tokens": 1853, "output_tokens": 228, "total_tokens": 2081, "cost": 0.0023090000000000003, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782228574.9874613, "model": "mimo-v2.5-pro", "input_tokens": 1720, "output_tokens": 187, "total_tokens": 1907, "cost": 0.002094, "run_id": "", "node": "agent", "prompt_version": null}

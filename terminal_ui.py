@@ -144,6 +144,7 @@ class TUIRenderer:
 
     def enter_alt_screen(self):
         if not self._alt_screen:
+            sys.stdout.write(CURSOR_HIDE)
             sys.stdout.write(ALT_SCREEN_ON)
             sys.stdout.flush()
             self._alt_screen = True
@@ -151,6 +152,7 @@ class TUIRenderer:
     def leave_alt_screen(self):
         if self._alt_screen:
             sys.stdout.write(ALT_SCREEN_OFF)
+            sys.stdout.write(CURSOR_SHOW)
             sys.stdout.flush()
             self._alt_screen = False
 
@@ -182,12 +184,23 @@ class TUIRenderer:
     # ── Full-screen redraw ──
 
     def draw(self, session, status: str = "ready"):
-        """Redraw the entire screen."""
+        """Redraw the entire screen.
+
+        Layout (top to bottom):
+          Row 1:    Header
+          Row 2..h-3: Transcript area (scrollable, fills middle)
+          Row h-2:  Status rule (thin green separator)
+          Row h-1:  Input area with ▸ prompt
+          Row h:    Status bar
+        """
         w, h = _term_size()
 
-        # Layout: header(1) + separator(1) + transcript area + separator(1) + input(1) + statusbar(1)
-        # That's 5 reserved lines; transcript gets the rest
-        transcript_rows = max(1, h - 5)
+        # Layout: header(1) + transcript area + statusrule(1) + input(1) + statusbar(1)
+        # That's 4 reserved lines; transcript gets the rest
+        transcript_rows = max(1, h - 4)
+
+        # Hide cursor during redraw
+        sys.stdout.write(CURSOR_HIDE)
 
         self._move_to(1, 1)
         self._clear_screen()
@@ -236,13 +249,13 @@ class TUIRenderer:
             self._clear_line()
             row += 1
 
-        # ── Separator line (row h-3) ──
-        sep_row = h - 3
+        # ── Status rule / separator (row h-2) ──
+        sep_row = h - 2
         self._move_to(sep_row, 1)
         self._write(f"{DGREEN}{'─' * w}{RESET}")
 
-        # ── Input area (row h-2) ──
-        input_row = h - 2
+        # ── Input area (row h-1) ──
+        input_row = h - 1
         self._move_to(input_row, 1)
         self._clear_line()
         self._write(f"{BGREEN}{BOLD}▸{RESET} ")
@@ -250,38 +263,66 @@ class TUIRenderer:
         # ── Status bar (row h) ──
         status_row = h
         self._move_to(status_row, 1)
-        left = f"◇ {status}"
+        self._clear_line()
+        left = f"▸ {status}"
         right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
         mid_pad = max(1, w - len(left) - len(right) - 2)
-        bar = f"{DARKGRN}{BOLD}{left}{' ' * mid_pad}{right}{RESET}"
+        bar = f"{DGREEN}{left}{' ' * mid_pad}{right}{RESET}"
         # Pad to fill width
         bar_visible = _visible_len(bar)
         if bar_visible < w:
             bar = bar[:-len(RESET)] + " " * (w - bar_visible) + RESET
         self._write(bar)
 
-        # Position cursor on input line after the prompt
+        # Show cursor on input line after the prompt
         self._move_to(input_row, 3)
+        sys.stdout.write(CURSOR_SHOW)
+        sys.stdout.flush()
+
+    def draw_streaming(self, session):
+        """Lightweight: update only the last transcript line and status bar."""
+        w, h = _term_size()
+        transcript_rows = max(1, h - 4)
+
+        # Move to last line of transcript area and update it
+        row = min(2 + transcript_rows - 1, h - 3)
+        if self._transcript:
+            last_line = self._transcript[-1]
+            self._move_to(row, 1)
+            self._clear_line()
+            truncated = last_line[:w-1]
+            self._write(truncated)
+
+        # Update status bar
+        self._move_to(h, 1)
+        self._clear_line()
+        status_text = f" {GREEN}▸{RESET} {DGREEN}streaming...{RESET}"
+        right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
+        padding = max(1, w - _visible_len(status_text) - _visible_len(right) - 2)
+        self._write(f"{status_text}{' ' * padding}{DGREEN}{right}{RESET}")
         sys.stdout.flush()
 
     def draw_input_line(self, session, status: str = "ready"):
         """Lightweight: just redraw the input line + status bar."""
         w, h = _term_size()
-        input_row = h - 2
+        input_row = h - 1
         self._move_to(input_row, 1)
         self._clear_line()
         self._write(f"{BGREEN}{BOLD}▸{RESET} ")
 
         status_row = h
         self._move_to(status_row, 1)
-        left = f"◇ {status}"
+        self._clear_line()
+        left = f"▸ {status}"
         right = f"tools:{session.tool_call_count} │ turns:{session.turn_count} │ {session.run_id}"
         mid_pad = max(1, w - len(left) - len(right) - 2)
-        bar = f"{DARKGRN}{BOLD}{left}{' ' * mid_pad}{right}{RESET}"
+        bar = f"{DGREEN}{left}{' ' * mid_pad}{right}{RESET}"
         bar_visible = _visible_len(bar)
         if bar_visible < w:
             bar = bar[:-len(RESET)] + " " * (w - bar_visible) + RESET
         self._write(bar)
+
+        self._move_to(input_row, 3)
         sys.stdout.flush()
 
 
@@ -367,8 +408,19 @@ def show_welcome():
     _transcript_print()
 
 
+def show_turn_separator():
+    """Add a turn separator line between user messages."""
+    w = _term_width()
+    _transcript_print(f"{DGREEN}{'─' * min(w, 60)}{RESET}")
+
+
 def show_user_input(text: str):
     """Echo user input in transcript."""
+    # Add turn separator before each new user message (except the first)
+    # Count existing user messages in transcript
+    user_count = sum(1 for l in _tui._transcript if l.startswith(f"{BWHITE}{BOLD}▸ You:"))
+    if user_count > 0:
+        show_turn_separator()
     _transcript_print(f"{BWHITE}{BOLD}▸ You:{RESET} {WHITE}{text}{RESET}")
 
 
@@ -534,7 +586,7 @@ def _hitl_prompt(interrupt_value, session: Session) -> str:
 
     try:
         w, h = _term_size()
-        input_row = h - 2
+        input_row = h - 1
         _tui._move_to(input_row, 1)
         _tui._clear_line()
         _tui._write(f"{YELLOW}{BOLD}?{RESET} ")
@@ -560,7 +612,7 @@ def _handle_ctrl_c_pause(session: Session) -> tuple:
 
     try:
         w, h = _term_size()
-        input_row = h - 2
+        input_row = h - 1
         _tui._move_to(input_row, 1)
         _tui._clear_line()
         _tui._write(f"{YELLOW}{BOLD}>{RESET} ")
@@ -580,7 +632,7 @@ def _handle_ctrl_c_pause(session: Session) -> tuple:
 def _get_input_in_alt(session: Session, prompt_text: str = "▸") -> Optional[str]:
     """Get user input while in alternate screen mode."""
     w, h = _term_size()
-    input_row = h - 2
+    input_row = h - 1
     _tui._move_to(input_row, 1)
     _tui._clear_line()
     _tui._write(f"{BGREEN}{BOLD}{prompt_text}{RESET} ")
@@ -650,7 +702,7 @@ async def run_agent_turn(session: Session, user_input: str):
                             _tui._transcript[-1] = current_agent_line
                         else:
                             _tui.add_line(current_agent_line)
-                        _tui.draw(session, "streaming...")
+                        _tui.draw_streaming(session)
 
                 # ── LLM done (may have tool_calls) ──
                 elif kind == "on_chat_model_end":
@@ -792,7 +844,7 @@ def handle_init(session: Session, args: list):
 
     try:
         w, h = _term_size()
-        input_row = h - 2
+        input_row = h - 1
         _tui._move_to(input_row, 1)
         _tui._clear_line()
         _tui._write(f"{YELLOW}{BOLD}? Proceed? (y/n){RESET} ")
@@ -920,7 +972,6 @@ def main():
         _tui.leave_alt_screen()
         sys.stdout.write(CURSOR_SHOW + "\n")
         sys.stdout.flush()
-
 
 if __name__ == "__main__":
     main()

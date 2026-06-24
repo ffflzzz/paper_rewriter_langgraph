@@ -34482,7 +34482,7 @@ if (!process.stdin.isTTY) {
 }
 process.stdout.write("\x1B[2J\x1B[H\x1B[3J");
 var { waitUntilExit } = render_default(import_react28.default.createElement(App2), {
-  exitOnCtrlC: false
+  exitOnCtrlC: true
 });
 waitUntilExit().then(() => {
   process.stdout.write("\x1B[?25h");

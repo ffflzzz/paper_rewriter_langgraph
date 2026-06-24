@@ -1,8 +1,11 @@
 #!/bin/bash
 # Paper Rewriter — Entry point
-# Launches the TypeScript Ink TUI that connects to the AG-UI backend.
+# Resolves symlink to find the real project directory
 
-TUI_DIR="$(dirname "$0")/tui"
+# Resolve symlink to get the real script directory
+SCRIPT_PATH="$(readlink -f "$0")"
+PROJECT_DIR="$(dirname "$SCRIPT_PATH")"
+TUI_DIR="$PROJECT_DIR/tui"
 NODE="/home/lex/.hermes/node/bin/node"
 
 # Check if the TUI is built
@@ -11,11 +14,11 @@ if [ ! -f "$TUI_DIR/dist/entry.js" ]; then
     cd "$TUI_DIR" && "$NODE" scripts/build.mjs
     if [ $? -ne 0 ]; then
         echo "Build failed. Falling back to Python terminal UI."
-        cd "$(dirname "$0")"
+        cd "$PROJECT_DIR"
         exec python3 terminal_ui.py "$@"
     fi
 fi
 
 # Launch the TypeScript TUI
-cd "$(dirname "$0")"
+cd "$PROJECT_DIR"
 exec "$NODE" "$TUI_DIR/dist/entry.js" "$@"

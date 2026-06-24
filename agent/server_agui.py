@@ -452,9 +452,15 @@ async def init_checkpointer():
         else:
             inner = body
 
-        # 补state默认值
+        # 补默认值
         if "state" not in inner:
             inner["state"] = {}
+        if "tools" not in inner:
+            inner["tools"] = []
+        if "context" not in inner:
+            inner["context"] = []
+        if "forwardedProps" not in inner:
+            inner["forwardedProps"] = {}
 
         input_data = RunAgentInput(**inner)
 

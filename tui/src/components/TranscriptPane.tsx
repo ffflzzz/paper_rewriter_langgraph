@@ -78,11 +78,17 @@ export const TranscriptPane = memo(function TranscriptPane({
   // Take last N lines (newest at bottom)
   const visibleLines = allLines.slice(-maxVisibleLines)
 
-  // Calculate empty lines to push content to bottom (like Hermes)
+  // Calculate empty lines to push content to bottom
   const emptyLines = Math.max(0, maxVisibleLines - visibleLines.length)
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1} justifyContent="flex-end">
+    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
+      {/* Empty lines at top to push content to bottom */}
+      {Array.from({ length: emptyLines }, (_, i) => (
+        <Box key={`empty-${i}`} height={1}>
+          <Text> </Text>
+        </Box>
+      ))}
       {/* Actual content */}
       {visibleLines.map((line) => (
         <Box key={line.key}>

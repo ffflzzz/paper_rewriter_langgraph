@@ -177,16 +177,15 @@ export function App() {
       {hitlPrompt && hitlCallback && <HitlPrompt prompt={hitlPrompt} onAnswer={hitlCallback} />}
 
       {/* Input — wrapped box */}
-      <Box flexDirection="column" paddingX={1}>
-        <Text color={theme.burgundy}>┌─ Input ─────────────────────────────────────────┐</Text>
+      <Box flexDirection="column">
+        <Text color={theme.burgundy}>{'┌─ Input ' + '─'.repeat(Math.max(0, (process.stdout.columns || 80) - 11)) + '┐'}</Text>
         <Box>
           <Text color={theme.burgundy}>│ </Text>
           <Text color={theme.green} bold>{'▸ '}</Text>
           <Text color={theme.white}>{inputText}</Text>
           <Text color={theme.dimGreen}>{'▌'}</Text>
-          <Text color={theme.burgundy}>                     │</Text>
         </Box>
-        <Text color={theme.burgundy}>└─────────────────────────────────────────────────┘</Text>
+        <Text color={theme.burgundy}>{'└' + '─'.repeat(Math.max(0, (process.stdout.columns || 80) - 3)) + '┘'}</Text>
       </Box>
 
       {/* Status bar */}

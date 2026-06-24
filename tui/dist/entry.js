@@ -34464,16 +34464,15 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
     toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
     hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", paddingX: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u250C\u2500 Input \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u250C\u2500 Input " + "\u2500".repeat(Math.max(0, (process.stdout.columns || 80) - 11)) + "\u2510" }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2502 " }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" }),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "                     \u2502" })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518" })
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2514" + "\u2500".repeat(Math.max(0, (process.stdout.columns || 80) - 3)) + "\u2518" })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       StatusBar,

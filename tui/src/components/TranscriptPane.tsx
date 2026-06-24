@@ -82,13 +82,7 @@ export const TranscriptPane = memo(function TranscriptPane({
   const emptyLines = Math.max(0, maxVisibleLines - visibleLines.length)
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
-      {/* Empty lines at top to push content to bottom */}
-      {Array.from({ length: emptyLines }, (_, i) => (
-        <Box key={`empty-${i}`} height={1}>
-          <Text> </Text>
-        </Box>
-      ))}
+    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1} justifyContent="flex-end">
       {/* Actual content */}
       {visibleLines.map((line) => (
         <Box key={line.key}>

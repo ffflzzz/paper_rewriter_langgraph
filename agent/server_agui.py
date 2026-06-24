@@ -13,6 +13,12 @@ API:
   GET  /api/event-log    — AG-UI事件日志（供Dashboard轮询）
   POST /api/copilotkit   — AG-UI端点
 """
+# CRITICAL: 绕过Clash代理，否则langchain_openai导入超时20秒
+import os as _os
+for _k in list(_os.environ.keys()):
+    if "proxy" in _k.lower():
+        del _os.environ[_k]
+_os.environ["no_proxy"] = "*"
 import asyncio
 import json
 import os

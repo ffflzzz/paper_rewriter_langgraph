@@ -1318,7 +1318,7 @@ var require_react_development = __commonJS({
           }
           return false;
         }
-        function memo6(type, compare) {
+        function memo4(type, compare) {
           {
             if (!isValidElementType(type)) {
               error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
@@ -1370,19 +1370,19 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState5(initialState) {
+        function useState4(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
-        function useReducer2(reducer2, initialArg, init) {
+        function useReducer(reducer, initialArg, init) {
           var dispatcher = resolveDispatcher();
-          return dispatcher.useReducer(reducer2, initialArg, init);
+          return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef2(initialValue) {
+        function useRef(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect4(create2, deps) {
+        function useEffect3(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -1394,7 +1394,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback3(callback, deps) {
+        function useCallback2(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
@@ -2158,22 +2158,22 @@ var require_react_development = __commonJS({
         exports.forwardRef = forwardRef2;
         exports.isValidElement = isValidElement;
         exports.lazy = lazy;
-        exports.memo = memo6;
+        exports.memo = memo4;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback3;
+        exports.useCallback = useCallback2;
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect4;
+        exports.useEffect = useEffect3;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect2;
         exports.useMemo = useMemo3;
-        exports.useReducer = useReducer2;
-        exports.useRef = useRef2;
-        exports.useState = useState5;
+        exports.useReducer = useReducer;
+        exports.useRef = useRef;
+        exports.useState = useState4;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -7865,9 +7865,9 @@ var require_react_reconciler_development = __commonJS({
       module.exports = function $$$reconciler($$$hostConfig) {
         var exports2 = {};
         "use strict";
-        var React17 = require_react();
+        var React15 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React17.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React15.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -12856,7 +12856,7 @@ var require_react_reconciler_development = __commonJS({
         function basicStateReducer(state, action) {
           return typeof action === "function" ? action(state) : action;
         }
-        function mountReducer(reducer2, initialArg, init) {
+        function mountReducer(reducer, initialArg, init) {
           var hook = mountWorkInProgressHook();
           var initialState;
           if (init !== void 0) {
@@ -12870,20 +12870,20 @@ var require_react_reconciler_development = __commonJS({
             interleaved: null,
             lanes: NoLanes,
             dispatch: null,
-            lastRenderedReducer: reducer2,
+            lastRenderedReducer: reducer,
             lastRenderedState: initialState
           };
           hook.queue = queue;
           var dispatch = queue.dispatch = dispatchReducerAction.bind(null, currentlyRenderingFiber$1, queue);
           return [hook.memoizedState, dispatch];
         }
-        function updateReducer(reducer2, initialArg, init) {
+        function updateReducer(reducer, initialArg, init) {
           var hook = updateWorkInProgressHook();
           var queue = hook.queue;
           if (queue === null) {
             throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
           }
-          queue.lastRenderedReducer = reducer2;
+          queue.lastRenderedReducer = reducer;
           var current2 = currentHook;
           var baseQueue = current2.baseQueue;
           var pendingQueue = queue.pending;
@@ -12945,7 +12945,7 @@ var require_react_reconciler_development = __commonJS({
                   newState = update.eagerState;
                 } else {
                   var action = update.action;
-                  newState = reducer2(newState, action);
+                  newState = reducer(newState, action);
                 }
               }
               update = update.next;
@@ -12978,13 +12978,13 @@ var require_react_reconciler_development = __commonJS({
           var dispatch = queue.dispatch;
           return [hook.memoizedState, dispatch];
         }
-        function rerenderReducer(reducer2, initialArg, init) {
+        function rerenderReducer(reducer, initialArg, init) {
           var hook = updateWorkInProgressHook();
           var queue = hook.queue;
           if (queue === null) {
             throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
           }
-          queue.lastRenderedReducer = reducer2;
+          queue.lastRenderedReducer = reducer;
           var dispatch = queue.dispatch;
           var lastRenderPhaseUpdate = queue.pending;
           var newState = hook.memoizedState;
@@ -12994,7 +12994,7 @@ var require_react_reconciler_development = __commonJS({
             var update = firstRenderPhaseUpdate;
             do {
               var action = update.action;
-              newState = reducer2(newState, action);
+              newState = reducer(newState, action);
               update = update.next;
             } while (update !== firstRenderPhaseUpdate);
             if (!objectIs(newState, hook.memoizedState)) {
@@ -13674,13 +13674,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               mountHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13778,13 +13778,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13882,13 +13882,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return updateReducer(reducer2, initialArg, init);
+                return updateReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13986,13 +13986,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnRerenderInDEV;
               try {
-                return rerenderReducer(reducer2, initialArg, init);
+                return rerenderReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14098,14 +14098,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               mountHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14219,14 +14219,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return updateReducer(reducer2, initialArg, init);
+                return updateReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14340,14 +14340,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return rerenderReducer(reducer2, initialArg, init);
+                return rerenderReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -27299,7 +27299,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (process.env.NODE_ENV !== "production") {
       (function() {
         "use strict";
-        var React17 = require_react();
+        var React15 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -27325,7 +27325,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React17.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React15.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -28175,11 +28175,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx7 = jsxWithValidationDynamic;
-        var jsxs7 = jsxWithValidationStatic;
+        var jsx6 = jsxWithValidationDynamic;
+        var jsxs6 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx7;
-        exports.jsxs = jsxs7;
+        exports.jsx = jsx6;
+        exports.jsxs = jsxs6;
       })();
     }
   }
@@ -28198,7 +28198,7 @@ var require_jsx_runtime = __commonJS({
 });
 
 // src/entry.tsx
-var import_react28 = __toESM(require_react(), 1);
+var import_react26 = __toESM(require_react(), 1);
 
 // node_modules/ink/build/render.js
 import { Stream } from "node:stream";
@@ -33797,11 +33797,11 @@ var use_input_default = useInput;
 
 // node_modules/ink/build/hooks/use-app.js
 var import_react17 = __toESM(require_react(), 1);
+var useApp = () => (0, import_react17.useContext)(AppContext_default);
+var use_app_default = useApp;
 
 // node_modules/ink/build/hooks/use-stdout.js
 var import_react18 = __toESM(require_react(), 1);
-var useStdout = () => (0, import_react18.useContext)(StdoutContext_default);
-var use_stdout_default = useStdout;
 
 // node_modules/ink/build/hooks/use-stderr.js
 var import_react19 = __toESM(require_react(), 1);
@@ -33813,10 +33813,7 @@ var import_react20 = __toESM(require_react(), 1);
 var import_react21 = __toESM(require_react(), 1);
 
 // src/App.tsx
-var import_react27 = __toESM(require_react(), 1);
-
-// src/components/ComposerInput.tsx
-var import_react22 = __toESM(require_react(), 1);
+var import_react25 = __toESM(require_react(), 1);
 
 // src/lib/theme.ts
 var theme = {
@@ -33838,227 +33835,8 @@ var theme = {
   dimWhite: "#888888"
 };
 
-// src/components/ComposerInput.tsx
-var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var ComposerInput = (0, import_react22.memo)(function ComposerInput2({ onSubmit, disabled }) {
-  const [input, setInput] = (0, import_react22.useState)("");
-  use_input_default(
-    (char, key) => {
-      if (disabled) return;
-      if (key.return) {
-        const trimmed = input.trim();
-        if (trimmed) {
-          onSubmit(trimmed);
-          setInput("");
-        }
-        return;
-      }
-      if (key.backspace || key.delete) {
-        setInput((prev) => prev.slice(0, -1));
-        return;
-      }
-      if (key.ctrl && char === "c") {
-        process.exit(0);
-        return;
-      }
-      if (char && !key.ctrl && !key.meta) {
-        setInput((prev) => prev + char);
-      }
-    },
-    { isActive: true }
-  );
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { width: "100%", paddingLeft: 1, paddingRight: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Text, { color: disabled ? theme.dimGreen : theme.green, bold: true, children: [
-      "\u25B8",
-      " "
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: disabled ? theme.dimGreen : theme.white, children: disabled ? "waiting\u2026" : input || "" }),
-    !disabled && input.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: theme.dimGreen, children: " type a message\u2026" })
-  ] });
-});
-
-// src/components/HitlPrompt.tsx
-var import_react23 = __toESM(require_react(), 1);
-var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-var HitlPrompt = (0, import_react23.memo)(function HitlPrompt2({ prompt, onAnswer }) {
-  use_input_default((input, key) => {
-    if (key.return || input === "y") {
-      onAnswer("y");
-    } else if (input === "n") {
-      onAnswer("n");
-    } else if (input === "s") {
-      onAnswer("skip");
-    }
-  });
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-    Box_default,
-    {
-      flexDirection: "column",
-      borderStyle: "round",
-      borderColor: theme.yellow,
-      paddingLeft: 1,
-      paddingRight: 1,
-      marginTop: 1,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.yellow, bold: true, children: "\u26A1 HITL Confirmation" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.white, children: prompt.message }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { marginTop: 1, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, bold: true, children: "[y]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "es " }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.red, bold: true, children: "[n]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "o " }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimWhite, bold: true, children: "[s]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "kip" })
-        ] })
-      ]
-    }
-  );
-});
-
-// src/components/StatusBar.tsx
-var import_react24 = __toESM(require_react(), 1);
-var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-var StatusBar = (0, import_react24.memo)(function StatusBar2({
-  sessionId,
-  status,
-  toolCallCount,
-  turnCount
-}) {
-  const statusColor = status === "streaming" ? theme.green : status === "error" ? theme.red : status === "idle" ? theme.dimGreen : theme.dimWhite;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-    Box_default,
-    {
-      width: "100%",
-      paddingLeft: 1,
-      paddingRight: 1,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: "\u25B8 " }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: statusColor, children: status }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: " ".repeat(Math.max(1, 40 - status.length)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
-          "tools:",
-          toolCallCount,
-          " \u2502 turns:",
-          turnCount,
-          " \u2502 ",
-          sessionId
-        ] })
-      ]
-    }
-  );
-});
-
-// src/components/ToolCallCards.tsx
-var import_react25 = __toESM(require_react(), 1);
-var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-var ToolCallCards = (0, import_react25.memo)(function ToolCallCards2({ toolCalls }) {
-  if (toolCalls.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { flexDirection: "column", marginTop: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        tc.status === "running" ? "\u23F3" : "\u2705"
-      ] })
-    ] }),
-    tc.args && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, dimColor: true, children: tc.args.length > 80 ? tc.args.slice(0, 80) + "\u2026" : tc.args }) }),
-    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text, { color: theme.dimGreen, children: [
-      "\u2192 ",
-      tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result
-    ] }) })
-  ] }, tc.id)) });
-});
-
-// src/components/TranscriptPane.tsx
-var import_react26 = __toESM(require_react(), 1);
-
-// src/lib/utils.ts
-function wrapText2(text, width) {
-  if (!text) return [""];
-  const lines = [];
-  const paragraphs = text.split("\n");
-  for (const para of paragraphs) {
-    if (para.length === 0) {
-      lines.push("");
-      continue;
-    }
-    let remaining = para;
-    while (remaining.length > 0) {
-      if (remaining.length <= width) {
-        lines.push(remaining);
-        break;
-      }
-      let breakAt = remaining.lastIndexOf(" ", width);
-      if (breakAt <= 0) breakAt = width;
-      lines.push(remaining.slice(0, breakAt));
-      remaining = remaining.slice(breakAt).trimStart();
-    }
-  }
-  return lines.length > 0 ? lines : [""];
-}
-
-// src/components/TranscriptPane.tsx
-var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
-function messagePrefix(role) {
-  if (role === "user") return "\u25B8 You: ";
-  if (role === "assistant") return "\u2502 ";
-  if (role === "tool") return "\u{1F527} ";
-  return "  ";
-}
-function messageColor(role) {
-  if (role === "user") return theme.white;
-  if (role === "assistant") return theme.green;
-  if (role === "tool") return theme.yellow;
-  return theme.dimGreen;
-}
-var TranscriptPane = (0, import_react26.memo)(function TranscriptPane2({
-  messages,
-  streamingText,
-  isStreaming
-}) {
-  const termHeight = process.stdout.rows || 24;
-  const maxVisibleLines = Math.max(5, termHeight - 8);
-  const allLines = [];
-  for (const msg of messages) {
-    if (msg.role === "tool" && msg.toolName) {
-      allLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
-      if (msg.content) {
-        const preview = msg.content.length > 120 ? msg.content.slice(0, 120) + "\u2026" : msg.content;
-        allLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
-      }
-    } else {
-      const wrapped = wrapText2(msg.content, 80);
-      for (let i = 0; i < wrapped.length; i++) {
-        const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
-        allLines.push({ key: `${msg.id}-${i}`, prefix, text: wrapped[i], color: messageColor(msg.role) });
-      }
-    }
-    if (msg.role === "user") {
-      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500".repeat(40), color: theme.dimGreen });
-    }
-  }
-  if (isStreaming && streamingText) {
-    const wrapped = wrapText2(streamingText, 80);
-    for (let i = 0; i < wrapped.length; i++) {
-      const prefix = i === 0 ? "\u2502 " : "\u2502 ";
-      allLines.push({ key: `streaming-${i}`, prefix, text: wrapped[i], color: theme.green });
-    }
-  }
-  const visibleLines = allLines.slice(-maxVisibleLines);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: line.prefix }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: line.color, children: line.text })
-  ] }, line.key)) });
-});
-
 // src/lib/agui-client.ts
 var BASE_URL = process.env.AGUI_URL || "http://localhost:8765";
-async function fetchStatus() {
-  const res = await fetch(`${BASE_URL}/api/status`);
-  if (!res.ok) throw new Error(`status failed: ${res.status}`);
-  return res.json();
-}
 function runAgent(messages, threadId, runId, callbacks) {
   const controller = new AbortController();
   const body = {
@@ -34134,429 +33912,289 @@ function runAgent(messages, threadId, runId, callbacks) {
   return () => controller.abort();
 }
 
-// src/App.tsx
-var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
-function genId() {
-  return Math.random().toString(36).slice(2, 10);
-}
-function genSessionId() {
-  return `tui-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-}
-function createInitialState() {
-  return {
-    messages: [],
-    streamingText: "",
-    isStreaming: false,
-    toolCalls: [],
-    hitlPrompt: null,
-    sessionId: genSessionId(),
-    status: "idle",
-    toolCallCount: 0,
-    turnCount: 0,
-    threadId: genId(),
-    error: null
-  };
-}
-function reducer(state, action) {
-  switch (action.type) {
-    case "ADD_MESSAGE":
-      return {
-        ...state,
-        messages: [...state.messages, action.message]
-      };
-    case "SET_STREAMING":
-      return {
-        ...state,
-        isStreaming: true,
-        streamingText: action.text,
-        status: "streaming"
-      };
-    case "APPEND_STREAMING":
-      return {
-        ...state,
-        streamingText: state.streamingText + action.delta
-      };
-    case "STOP_STREAMING": {
-      const msgs = state.streamingText ? [
-        ...state.messages,
-        {
-          id: genId(),
-          role: "assistant",
-          content: state.streamingText,
-          timestamp: Date.now()
-        }
-      ] : state.messages;
-      return {
-        ...state,
-        messages: msgs,
-        isStreaming: false,
-        streamingText: "",
-        status: "idle"
-      };
+// src/components/TranscriptPane.tsx
+var import_react22 = __toESM(require_react(), 1);
+
+// src/lib/utils.ts
+function wrapText2(text, width) {
+  if (!text) return [""];
+  const lines = [];
+  const paragraphs = text.split("\n");
+  for (const para of paragraphs) {
+    if (para.length === 0) {
+      lines.push("");
+      continue;
     }
-    case "CLEAR_STREAMING":
-      return { ...state, isStreaming: false, streamingText: "" };
-    case "TOOL_CALL_START":
-      return {
-        ...state,
-        toolCalls: [...state.toolCalls, action.toolCall],
-        toolCallCount: state.toolCallCount + 1
-      };
-    case "TOOL_CALL_UPDATE":
-      return {
-        ...state,
-        toolCalls: state.toolCalls.map(
-          (tc) => tc.id === action.id ? { ...tc, args: tc.args + action.args } : tc
-        )
-      };
-    case "TOOL_CALL_END":
-      return {
-        ...state,
-        toolCalls: state.toolCalls.map(
-          (tc) => tc.id === action.id ? { ...tc, status: "done", result: action.result ?? tc.result } : tc
-        )
-      };
-    case "SET_HITL":
-      return { ...state, hitlPrompt: action.prompt };
-    case "SET_STATUS":
-      return { ...state, status: action.status };
-    case "SET_ERROR":
-      return { ...state, error: action.error, status: "error" };
-    case "INCREMENT_TURN":
-      return { ...state, turnCount: state.turnCount + 1 };
-    case "NEW_SESSION": {
-      const newId = genSessionId();
-      return {
-        ...createInitialState(),
-        sessionId: newId,
-        messages: [
-          {
-            id: genId(),
-            role: "system",
-            content: `New session: ${newId}`,
-            timestamp: Date.now()
-          }
-        ]
-      };
+    let remaining = para;
+    while (remaining.length > 0) {
+      if (remaining.length <= width) {
+        lines.push(remaining);
+        break;
+      }
+      let breakAt = remaining.lastIndexOf(" ", width);
+      if (breakAt <= 0) breakAt = width;
+      lines.push(remaining.slice(0, breakAt));
+      remaining = remaining.slice(breakAt).trimStart();
     }
-    default:
-      return state;
   }
+  return lines.length > 0 ? lines : [""];
 }
-function handleCommand(cmd, state, dispatch) {
-  const lower = cmd.toLowerCase().trim();
-  if (lower === "/quit" || lower === "/exit") {
-    process.exit(0);
-  }
-  if (lower === "/help") {
-    dispatch({
-      type: "ADD_MESSAGE",
-      message: {
-        id: genId(),
-        role: "system",
-        content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show session status\n  /clear   \u2014 Clear transcript\n  /quit    \u2014 Exit TUI",
-        timestamp: Date.now()
-      }
-    });
-    return true;
-  }
-  if (lower === "/new") {
-    dispatch({ type: "NEW_SESSION" });
-    return true;
-  }
-  if (lower === "/status") {
-    dispatch({
-      type: "ADD_MESSAGE",
-      message: {
-        id: genId(),
-        role: "system",
-        content: [
-          `Session  : ${state.sessionId}`,
-          `Thread   : ${state.threadId}`,
-          `Messages : ${state.messages.length}`,
-          `Tool calls: ${state.toolCallCount}`,
-          `Turns    : ${state.turnCount}`,
-          `Status   : ${state.status}`
-        ].join("\n"),
-        timestamp: Date.now()
-      }
-    });
-    return true;
-  }
-  if (lower === "/clear") {
-    dispatch({ type: "NEW_SESSION" });
-    return true;
-  }
-  return false;
+
+// src/components/TranscriptPane.tsx
+var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
+function messagePrefix(role) {
+  if (role === "user") return "\u25B8 You: ";
+  if (role === "assistant") return "\u2502 ";
+  if (role === "tool") return "\u{1F527} ";
+  return "  ";
 }
-function App2() {
-  const [state, dispatch] = (0, import_react27.useReducer)(reducer, null, createInitialState);
-  const abortRef = (0, import_react27.useRef)(null);
-  const [connected, setConnected] = (0, import_react27.useState)(false);
-  const { stdout } = use_stdout_default();
-  (0, import_react27.useEffect)(() => {
-    stdout.write("\x1B[?1049h");
-    stdout.write("\x1B[?25l");
-    fetchStatus().then(() => {
-      setConnected(true);
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "system",
-          content: "\u{1F4DD} PAPER REWRITER \u2014 TypeScript Ink TUI\nConnected to AG-UI backend at localhost:8765\nType your message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit",
-          timestamp: Date.now()
-        }
-      });
-    }).catch(() => {
-      setConnected(false);
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "system",
-          content: "\u{1F4DD} PAPER REWRITER \u2014 TypeScript Ink TUI\n\u26A0 Backend not reachable at localhost:8765\nStart the backend: cd /home/lex/paper_rewriter_langgraph && python3 -m agent.server_agui\nCommands: /help \xB7 /new \xB7 /status \xB7 /quit",
-          timestamp: Date.now()
-        }
-      });
-    });
-    return () => {
-      stdout.write("\x1B[?25h");
-      stdout.write("\x1B[?1049l");
-    };
-  }, []);
-  const handleEvent = (0, import_react27.useCallback)(
-    (event) => {
-      switch (event.type) {
-        case "RUN_STARTED":
-          dispatch({ type: "SET_STATUS", status: "streaming" });
-          break;
-        case "TEXT_MESSAGE_START":
-          dispatch({ type: "SET_STREAMING", text: "" });
-          break;
-        case "TEXT_MESSAGE_CONTENT":
-          if (event.delta) {
-            dispatch({ type: "APPEND_STREAMING", delta: event.delta });
-          }
-          break;
-        case "TEXT_MESSAGE_END":
-          dispatch({ type: "STOP_STREAMING" });
-          dispatch({ type: "INCREMENT_TURN" });
-          break;
-        case "TOOL_CALL_START":
-          dispatch({
-            type: "TOOL_CALL_START",
-            toolCall: {
-              id: event.toolCallId || genId(),
-              name: event.toolCallName || event.name || "unknown",
-              args: "",
-              status: "running"
-            }
-          });
-          break;
-        case "TOOL_CALL_ARGS":
-          if (event.toolCallId && event.delta) {
-            dispatch({
-              type: "TOOL_CALL_UPDATE",
-              id: event.toolCallId,
-              args: event.delta
-            });
-          }
-          break;
-        case "TOOL_CALL_END":
-          dispatch({
-            type: "TOOL_CALL_END",
-            id: event.toolCallId || ""
-          });
-          break;
-        case "RUN_FINISHED":
-          dispatch({ type: "SET_STATUS", status: "idle" });
-          if (state.isStreaming && state.streamingText) {
-            dispatch({ type: "STOP_STREAMING" });
-          }
-          setTimeout(() => {
-            dispatch({ type: "CLEAR_STREAMING" });
-          }, 100);
-          break;
-        case "RUN_ERROR":
-          dispatch({
-            type: "SET_ERROR",
-            error: event.error || "Unknown error"
-          });
-          dispatch({ type: "CLEAR_STREAMING" });
-          break;
-        case "STATE_SNAPSHOT":
-        case "STATE_DELTA":
-        case "MESSAGES_SNAPSHOT":
-          break;
-        case "STEP_STARTED":
-        case "STEP_FINISHED":
-          break;
-        case "CUSTOM":
-          break;
-        default:
-          break;
+function messageColor(role) {
+  if (role === "user") return theme.white;
+  if (role === "assistant") return theme.green;
+  if (role === "tool") return theme.yellow;
+  return theme.dimGreen;
+}
+var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
+  messages,
+  streamingText,
+  isStreaming
+}) {
+  const termHeight = process.stdout.rows || 24;
+  const maxVisibleLines = Math.max(5, termHeight - 8);
+  const allLines = [];
+  for (const msg of messages) {
+    if (msg.role === "tool" && msg.toolName) {
+      allLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
+      if (msg.content) {
+        const preview = msg.content.length > 120 ? msg.content.slice(0, 120) + "\u2026" : msg.content;
+        allLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
       }
-    },
-    [state.isStreaming, state.streamingText]
-  );
-  const handleSendMessage = (0, import_react27.useCallback)(
-    (text) => {
-      if (text.startsWith("/")) {
-        handleCommand(text, state, dispatch);
-        return;
+    } else {
+      const wrapped = wrapText2(msg.content, 80);
+      for (let i = 0; i < wrapped.length; i++) {
+        const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
+        allLines.push({ key: `${msg.id}-${i}`, prefix, text: wrapped[i], color: messageColor(msg.role) });
       }
-      if (!connected) {
-        dispatch({
-          type: "ADD_MESSAGE",
-          message: {
-            id: genId(),
-            role: "system",
-            content: "\u26A0 Not connected to backend. Start the Python server first.",
-            timestamp: Date.now()
-          }
-        });
-        return;
-      }
-      if (abortRef.current) {
-        abortRef.current();
-        abortRef.current = null;
-      }
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "user",
-          content: text,
-          timestamp: Date.now()
-        }
-      });
-      dispatch({ type: "SET_STATUS", status: "sending" });
-      const agMessages = state.messages.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content
-      })).concat([{ id: genId(), role: "user", content: text }]);
-      const runId = genId();
-      abortRef.current = runAgent(agMessages, state.threadId, runId, {
-        onEvent: handleEvent,
-        onError: (err) => {
-          dispatch({ type: "SET_ERROR", error: err.message });
-          dispatch({ type: "CLEAR_STREAMING" });
-        },
-        onDone: () => {
-          if (state.isStreaming) {
-            dispatch({ type: "STOP_STREAMING" });
-          }
-          dispatch({ type: "SET_STATUS", status: "idle" });
-        }
-      });
-    },
-    [state, connected, handleEvent]
-  );
-  const handleHitlAnswer = (0, import_react27.useCallback)((answer) => {
-    dispatch({ type: "SET_HITL", prompt: null });
-    setTimeout(() => {
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "user",
-          content: answer,
-          timestamp: Date.now()
-        }
-      });
-      const agMessages = [
-        { id: genId(), role: "user", content: answer }
-      ];
-      dispatch({ type: "SET_STATUS", status: "sending" });
-      const runId = genId();
-      abortRef.current = runAgent(agMessages, state.threadId, runId, {
-        onEvent: handleEvent,
-        onError: (err) => {
-          dispatch({ type: "SET_ERROR", error: err.message });
-          dispatch({ type: "CLEAR_STREAMING" });
-        },
-        onDone: () => {
-          dispatch({ type: "SET_STATUS", status: "idle" });
-        }
-      });
-    }, 0);
-  }, [state.threadId, handleEvent]);
+    }
+    if (msg.role === "user") {
+      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500".repeat(40), color: theme.dimGreen });
+    }
+  }
+  if (isStreaming && streamingText) {
+    const wrapped = wrapText2(streamingText, 80);
+    for (let i = 0; i < wrapped.length; i++) {
+      const prefix = i === 0 ? "\u2502 " : "\u2502 ";
+      allLines.push({ key: `streaming-${i}`, prefix, text: wrapped[i], color: theme.green });
+    }
+  }
+  const visibleLines = allLines.slice(-maxVisibleLines);
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: theme.dimGreen, children: line.prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
+  ] }, line.key)) });
+});
+
+// src/components/StatusBar.tsx
+var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+function StatusBar({ status, toolCount, turnCount, sessionId }) {
+  const statusIcon = status === "idle" ? "\u25C7" : status === "processing" ? "\u25CF" : status === "streaming" ? "\u25B8" : "\u2717";
+  const statusText = status === "idle" ? "ready" : status === "processing" ? "processing..." : status === "streaming" ? "streaming..." : "error";
+  const left = `${statusIcon} ${statusText}`;
+  const right = `tools:${toolCount} \u2502 turns:${turnCount} \u2502 ${sessionId}`;
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
+      "\u25B8",
+      " "
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: status === "error" ? theme.red : theme.dimGreen, children: left }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " ".repeat(Math.max(1, (process.stdout.columns || 80) - left.length - right.length - 4)) }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: right })
+  ] });
+}
+
+// src/components/ToolCallCards.tsx
+var import_react23 = __toESM(require_react(), 1);
+var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+var ToolCallCards = (0, import_react23.memo)(function ToolCallCards2({ toolCalls }) {
+  if (toolCalls.length === 0) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", marginTop: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+        " ",
+        tc.status === "running" ? "\u23F3" : "\u2705"
+      ] })
+    ] }),
+    tc.args && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, dimColor: true, children: tc.args.length > 80 ? tc.args.slice(0, 80) + "\u2026" : tc.args }) }),
+    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+      "\u2192 ",
+      tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result
+    ] }) })
+  ] }, tc.id)) });
+});
+
+// src/components/HitlPrompt.tsx
+var import_react24 = __toESM(require_react(), 1);
+var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+var HitlPrompt = (0, import_react24.memo)(function HitlPrompt2({ prompt, onAnswer }) {
   use_input_default((input, key) => {
-    if (key.ctrl && input === "c") {
-      if (abortRef.current) abortRef.current();
-      process.exit(0);
-    }
-    if (key.ctrl && input === "l") {
-      dispatch({ type: "NEW_SESSION" });
+    if (key.return || input === "y") {
+      onAnswer("y");
+    } else if (input === "n") {
+      onAnswer("n");
+    } else if (input === "s") {
+      onAnswer("skip");
     }
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", width: "100%", height: "100%", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingLeft: 1, paddingRight: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.green, bold: true, children: [
-        " ",
-        "\u{1F4DD} PAPER REWRITER",
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+    Box_default,
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: theme.yellow,
+      paddingLeft: 1,
+      paddingRight: 1,
+      marginTop: 1,
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: "\u26A1 HITL Confirmation" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.white, children: prompt.message }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { marginTop: 1, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.green, bold: true, children: "[y]" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "es " }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.red, bold: true, children: "[n]" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "o " }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimWhite, bold: true, children: "[s]" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "kip" })
+        ] })
+      ]
+    }
+  );
+});
+
+// src/App.tsx
+var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+function App2() {
+  const { exit } = use_app_default();
+  const [messages, setMessages] = (0, import_react25.useState)([]);
+  const [inputText, setInputText] = (0, import_react25.useState)("");
+  const [isStreaming, setIsStreaming] = (0, import_react25.useState)(false);
+  const [streamingText, setStreamingText] = (0, import_react25.useState)("");
+  const [status, setStatus] = (0, import_react25.useState)("idle");
+  const [sessionId] = (0, import_react25.useState)(() => `local-${Date.now() % 1e5}`);
+  const [toolCalls, setToolCalls] = (0, import_react25.useState)([]);
+  const [hitlPrompt, setHitlPrompt] = (0, import_react25.useState)(null);
+  const [hitlCallback, setHitlCallback] = (0, import_react25.useState)(null);
+  const [turnCount, setTurnCount] = (0, import_react25.useState)(0);
+  const [abortFn, setAbortFn] = (0, import_react25.useState)(null);
+  use_input_default((input, key) => {
+    if (hitlPrompt) return;
+    if (key.return) {
+      if (inputText.trim()) {
+        if (inputText.trim() === "/quit") {
+          exit();
+          return;
+        }
+        if (inputText.trim() === "/help") {
+          setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands: /help \xB7 /new \xB7 /status \xB7 /quit", timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        if (inputText.trim() === "/new") {
+          setMessages([]);
+          setToolCalls([]);
+          setTurnCount(0);
+          setInputText("");
+          return;
+        }
+        if (inputText.trim() === "/status") {
+          setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `Session: ${sessionId}
+Messages: ${messages.length}
+Turns: ${turnCount}`, timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        sendMessage(inputText.trim());
+        setInputText("");
+      }
+      return;
+    }
+    if (key.backspace || key.delete) {
+      setInputText((prev) => prev.slice(0, -1));
+      return;
+    }
+    if (key.escape && isStreaming && abortFn) {
+      abortFn();
+      return;
+    }
+    if (input && !key.ctrl && !key.meta) {
+      setInputText((prev) => prev + input);
+    }
+  });
+  const sendMessage = (0, import_react25.useCallback)((text) => {
+    const userMsg = { id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now() };
+    setMessages((prev) => [...prev, userMsg]);
+    setTurnCount((prev) => prev + 1);
+    setStatus("processing");
+    setIsStreaming(true);
+    setStreamingText("");
+    setToolCalls([]);
+    const abort = runAgent(
+      [{ id: `m-${Date.now()}`, role: "user", content: text }],
+      sessionId,
+      `run-${Date.now()}`,
+      {
+        onEvent: (event) => {
+          const e = event;
+          switch (e.type) {
+            case "TEXT_MESSAGE_CONTENT":
+              setStreamingText((prev) => prev + String(e.delta || ""));
+              setStatus("streaming");
+              break;
+            case "TOOL_CALL_START":
+              setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running" }]);
+              break;
+            case "TOOL_CALL_END":
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done" } : tc));
+              break;
+            case "STEP_STARTED":
+              setStatus("processing");
+              break;
+          }
+        },
+        onError: (err) => {
+          setStatus("error");
+          setIsStreaming(false);
+          setMessages((prev) => [...prev, { id: `e-${Date.now()}`, role: "assistant", content: `Error: ${err.message}`, timestamp: Date.now() }]);
+        },
+        onDone: () => {
+          setStreamingText((current) => {
+            if (current) {
+              setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: current, timestamp: Date.now() }]);
+            }
+            return "";
+          });
+          setIsStreaming(false);
+          setStatus("idle");
+        }
+      }
+    );
+    setAbortFn(() => abort);
+  }, [sessionId]);
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
+    toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ToolCallCards, { toolCalls }),
+    hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { paddingX: 1, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: theme.green, bold: true, children: [
+        "\u25B8 ",
         " "
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2502" }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "Session:",
-        " "
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, children: state.sessionId }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "\u2502",
-        " ",
-        "tools:",
-        state.toolCallCount,
-        " ",
-        "\u2502",
-        " ",
-        "turns:",
-        state.turnCount
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "\u2502",
-        " "
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: connected ? theme.green : theme.red, children: connected ? "\u25CF connected" : "\u25CB disconnected" })
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: inputText }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(80) }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      TranscriptPane,
-      {
-        messages: state.messages,
-        streamingText: state.streamingText,
-        isStreaming: state.isStreaming
-      }
-    ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls: state.toolCalls }),
-    state.hitlPrompt && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: state.hitlPrompt, onAnswer: handleHitlAnswer }),
-    state.error && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { paddingLeft: 1, paddingRight: 1, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.red, children: [
-      "\u26A0 ",
-      state.error
-    ] }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(80) }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      ComposerInput,
-      {
-        onSubmit: handleSendMessage,
-        disabled: state.isStreaming
-      }
-    ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      StatusBar,
-      {
-        sessionId: state.sessionId,
-        status: state.status,
-        toolCallCount: state.toolCallCount,
-        turnCount: state.turnCount
-      }
-    )
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(StatusBar, { status, toolCount: toolCalls.length, turnCount, sessionId })
   ] });
 }
 
@@ -34567,7 +34205,7 @@ if (!process.stdin.isTTY) {
   process.exit(1);
 }
 process.stdout.write("\x1B[2J\x1B[H\x1B[3J");
-var { waitUntilExit } = render_default(import_react28.default.createElement(App2), {
+var { waitUntilExit } = render_default(import_react26.default.createElement(App2), {
   exitOnCtrlC: false
 });
 waitUntilExit().then(() => {

@@ -36,8 +36,10 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
+  // Reserve space for: status rule(1) + input(1) + status bar(1) = 3 lines
   const termHeight = process.stdout.rows || 24
-  const maxVisibleLines = Math.max(5, termHeight - 8)
+  const reservedLines = 3
+  const maxVisibleLines = Math.max(5, termHeight - reservedLines)
 
   const allLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 
@@ -78,7 +80,7 @@ export const TranscriptPane = memo(function TranscriptPane({
   // Take last N lines (newest at bottom)
   const visibleLines = allLines.slice(-maxVisibleLines)
 
-  // Calculate empty lines to push content to bottom
+  // Empty lines to push content to bottom
   const emptyLines = Math.max(0, maxVisibleLines - visibleLines.length)
 
   return (

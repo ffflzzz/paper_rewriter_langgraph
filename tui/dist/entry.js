@@ -34056,7 +34056,8 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   isStreaming
 }) {
   const termHeight = process.stdout.rows || 24;
-  const maxVisibleLines = Math.max(5, termHeight - 8);
+  const reservedLines = 3;
+  const maxVisibleLines = Math.max(5, termHeight - reservedLines);
   const allLines = [];
   for (const msg of messages) {
     if (msg.role === "tool" && msg.toolName) {

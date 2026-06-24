@@ -33823,6 +33823,10 @@ var theme = {
   dimGreen: "#008800",
   /** Dark green — background accents */
   darkGreen: "#004400",
+  /** Burgundy — fixed components (status bar, separators, headers) */
+  burgundy: "#882244",
+  /** Dim burgundy — secondary fixed elements */
+  dimBurgundy: "#662233",
   /** Red — errors, warnings */
   red: "#ff3333",
   /** Yellow — tool calls, info */
@@ -34124,17 +34128,17 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
   }, [status]);
   const statusText = status === "streaming" ? "streaming..." : status === "processing" ? "processing..." : null;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, children: "\u2695 " }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: model }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.burgundy, children: "\u2695 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: model }),
     statusText && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \xB7 " }),
-      status === "streaming" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.green, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+      status === "streaming" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.burgundy, children: [
         SPINNER_FRAMES[spinnerIdx],
         " "
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: statusText })
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: statusText })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimBurgundy, children: [
       " \xB7 ",
       elapsed
     ] })
@@ -34449,7 +34453,7 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
     toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
     hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingX: 1, children: [
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),

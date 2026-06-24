@@ -40,7 +40,7 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
     return () => clearInterval(timer)
   }, [status])
 
-  // Hermes format: ⚕ model · [status] · duration
+  // Status text
   const statusText = status === 'streaming'
     ? 'streaming...'
     : status === 'processing'
@@ -49,18 +49,18 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
 
   return (
     <Box paddingX={1}>
-      <Text color={theme.green}>⚕ </Text>
-      <Text color={theme.dimGreen}>{model}</Text>
+      <Text color={theme.burgundy}>⚕ </Text>
+      <Text color={theme.dimBurgundy}>{model}</Text>
       {statusText && (
         <>
-          <Text color={theme.dimGreen}> · </Text>
+          <Text color={theme.dimBurgundy}> · </Text>
           {status === 'streaming' && (
-            <Text color={theme.green}>{SPINNER_FRAMES[spinnerIdx]} </Text>
+            <Text color={theme.burgundy}>{SPINNER_FRAMES[spinnerIdx]} </Text>
           )}
-          <Text color={theme.dimGreen}>{statusText}</Text>
+          <Text color={theme.dimBurgundy}>{statusText}</Text>
         </>
       )}
-      <Text color={theme.dimGreen}> · {elapsed}</Text>
+      <Text color={theme.dimBurgundy}> · {elapsed}</Text>
     </Box>
   )
 }

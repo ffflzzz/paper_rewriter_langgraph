@@ -178,7 +178,7 @@ export function App() {
 
       {/* Status rule */}
       <Box>
-        <Text color={theme.dimGreen}>{'─'.repeat(process.stdout.columns || 80)}</Text>
+        <Text color={theme.burgundy}>{'─'.repeat(process.stdout.columns || 80)}</Text>
       </Box>
 
       {/* Input */}

@@ -6,6 +6,10 @@ export const theme = {
   dimGreen: '#008800',
   /** Dark green — background accents */
   darkGreen: '#004400',
+  /** Burgundy — fixed components (status bar, separators, headers) */
+  burgundy: '#882244',
+  /** Dim burgundy — secondary fixed elements */
+  dimBurgundy: '#662233',
   /** Red — errors, warnings */
   red: '#ff3333',
   /** Yellow — tool calls, info */

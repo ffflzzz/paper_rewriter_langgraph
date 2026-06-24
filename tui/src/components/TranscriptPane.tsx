@@ -70,10 +70,19 @@ export const TranscriptPane = memo(function TranscriptPane({
     }
   }
 
+  // Terminal height - reserved lines (input + status bar + separator)
+  const rows = process.stdout.rows || 24
+  const reserved = 3
+  const available = rows - reserved
+  const padLines = Math.max(0, available - contentLines.length)
+
   return (
-    <Box flexDirection="column" paddingLeft={1} paddingRight={1}>
-      {/* Spacer pushes content to bottom */}
-      <Box flexGrow={1} />
+    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
+      {/* Empty lines at top to push content to bottom */}
+      {Array.from({ length: padLines }, (_, i) => (
+        <Box key={`pad-${i}`}><Text> </Text></Box>
+      ))}
+      {/* Content at bottom */}
       {contentLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>}

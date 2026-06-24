@@ -1370,7 +1370,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState6(initialState) {
+        function useState5(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1382,7 +1382,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect6(create2, deps) {
+        function useEffect5(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -2165,7 +2165,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect6;
+        exports.useEffect = useEffect5;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2173,7 +2173,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState6;
+        exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -34050,40 +34050,11 @@ function messageColor(role) {
   if (role === "tool") return theme.yellow;
   return theme.dimGreen;
 }
-function getTerminalRows() {
-  try {
-    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows;
-  } catch {
-  }
-  try {
-    const lines = parseInt(process.env.LINES || "0", 10);
-    if (lines > 0) return lines;
-  } catch {
-  }
-  try {
-    const { execSync } = __require("child_process");
-    const result = execSync("tput lines 2>/dev/null || echo 0", { encoding: "utf-8" }).trim();
-    const r = parseInt(result, 10);
-    if (r > 0) return r;
-  } catch {
-  }
-  return 24;
-}
 var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   messages,
   streamingText,
   isStreaming
 }) {
-  const [termRows, setTermRows] = (0, import_react22.useState)(getTerminalRows);
-  (0, import_react22.useEffect)(() => {
-    const update = () => setTermRows(getTerminalRows());
-    process.stdout.on("resize", update);
-    const timer = setTimeout(update, 300);
-    return () => {
-      process.stdout.off("resize", update);
-      clearTimeout(timer);
-    };
-  }, []);
   const contentLines = [];
   for (const msg of messages) {
     if (msg.role === "tool" && msg.toolName) {
@@ -34115,8 +34086,9 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
+  const rows = process.stdout.rows || parseInt(process.env.LINES || "24", 10);
   const reserved = 3;
-  const available = Math.max(5, termRows - reserved);
+  const available = Math.max(5, rows - reserved);
   const padLines = Math.max(0, available - contentLines.length);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
     Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),

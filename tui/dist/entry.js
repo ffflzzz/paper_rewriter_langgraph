@@ -1378,11 +1378,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer2, initialArg, init);
         }
-        function useRef3(initialValue) {
+        function useRef2(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect5(create2, deps) {
+        function useEffect4(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -2165,14 +2165,14 @@ var require_react_development = __commonJS({
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect5;
+        exports.useEffect = useEffect4;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect2;
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer2;
-        exports.useRef = useRef3;
+        exports.useRef = useRef2;
         exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -33972,93 +33972,84 @@ var ToolCallCards = (0, import_react25.memo)(function ToolCallCards2({ toolCalls
 
 // src/components/TranscriptPane.tsx
 var import_react26 = __toESM(require_react(), 1);
-var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
-function messageColor(role) {
-  switch (role) {
-    case "user":
-      return theme.cyan;
-    case "assistant":
-      return theme.green;
-    case "system":
-      return theme.dimGreen;
-    case "tool":
-      return theme.yellow;
-    default:
-      return theme.dimWhite;
-  }
-}
-function messagePrefix(role) {
-  switch (role) {
-    case "user":
-      return "\u25B8 ";
-    case "assistant":
-      return "\u2502 ";
-    case "system":
-      return "\u25E6 ";
-    case "tool":
-      return "\u2699 ";
-    default:
-      return "  ";
-  }
-}
+
+// src/lib/utils.ts
 function wrapText2(text, width) {
   if (!text) return [""];
   const lines = [];
-  for (const paragraph of text.split("\n")) {
-    if (!paragraph) {
+  const paragraphs = text.split("\n");
+  for (const para of paragraphs) {
+    if (para.length === 0) {
       lines.push("");
       continue;
     }
-    const words = paragraph.split(/\s+/);
-    let current = "";
-    for (const word of words) {
-      if (current && current.length + 1 + word.length > width) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = current ? `${current} ${word}` : word;
+    let remaining = para;
+    while (remaining.length > 0) {
+      if (remaining.length <= width) {
+        lines.push(remaining);
+        break;
       }
+      let breakAt = remaining.lastIndexOf(" ", width);
+      if (breakAt <= 0) breakAt = width;
+      lines.push(remaining.slice(0, breakAt));
+      remaining = remaining.slice(breakAt).trimStart();
     }
-    if (current) lines.push(current);
   }
-  return lines.length ? lines : [""];
+  return lines.length > 0 ? lines : [""];
+}
+
+// src/components/TranscriptPane.tsx
+var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+function messagePrefix(role) {
+  if (role === "user") return "\u25B8 You: ";
+  if (role === "assistant") return "\u2502 ";
+  if (role === "tool") return "\u{1F527} ";
+  return "  ";
+}
+function messageColor(role) {
+  if (role === "user") return theme.white;
+  if (role === "assistant") return theme.green;
+  if (role === "tool") return theme.yellow;
+  return theme.dimGreen;
 }
 var TranscriptPane = (0, import_react26.memo)(function TranscriptPane2({
   messages,
   streamingText,
   isStreaming
 }) {
-  const containerRef = (0, import_react26.useRef)(null);
-  (0, import_react26.useEffect)(() => {
-  }, [messages.length, streamingText]);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    messages.map((msg, idx) => {
-      const prefix = messagePrefix(msg.role);
-      const color = messageColor(msg.role);
+  const termHeight = process.stdout.rows || 24;
+  const maxVisibleLines = Math.max(5, termHeight - 8);
+  const allLines = [];
+  for (const msg of messages) {
+    if (msg.role === "tool" && msg.toolName) {
+      allLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
+      if (msg.content) {
+        const preview = msg.content.length > 120 ? msg.content.slice(0, 120) + "\u2026" : msg.content;
+        allLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
+      }
+    } else {
       const wrapped = wrapText2(msg.content, 80);
-      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
-        msg.role === "user" && idx > 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(40) }) }),
-        msg.role === "tool" && msg.toolName ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.yellow, bold: true, children: msg.toolName })
-          ] }),
-          msg.content && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: msg.content.length > 200 ? msg.content.slice(0, 200) + "\u2026" : msg.content }) })
-        ] }) : wrapped.map((line, lineIdx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: lineIdx === 0 ? theme.dimGreen : theme.dimGreen, children: lineIdx === 0 ? prefix : "\u2502 " }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color, children: line })
-        ] }, lineIdx))
-      ] }, msg.id);
-    }),
-    isStreaming && streamingText && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { flexDirection: "column", children: wrapText2(streamingText, 80).map((line, lineIdx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: lineIdx === 0 ? "\u2502 " : "\u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: line })
-    ] }, lineIdx)) }),
-    isStreaming && !streamingText && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "\u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258B" })
-    ] })
-  ] });
+      for (let i = 0; i < wrapped.length; i++) {
+        const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
+        allLines.push({ key: `${msg.id}-${i}`, prefix, text: wrapped[i], color: messageColor(msg.role) });
+      }
+    }
+    if (msg.role === "user") {
+      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500".repeat(40), color: theme.dimGreen });
+    }
+  }
+  if (isStreaming && streamingText) {
+    const wrapped = wrapText2(streamingText, 80);
+    for (let i = 0; i < wrapped.length; i++) {
+      const prefix = i === 0 ? "\u2502 " : "\u2502 ";
+      allLines.push({ key: `streaming-${i}`, prefix, text: wrapped[i], color: theme.green });
+    }
+  }
+  const visibleLines = allLines.slice(-maxVisibleLines);
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: line.prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: line.color, children: line.text })
+  ] }, line.key)) });
 });
 
 // src/lib/agui-client.ts

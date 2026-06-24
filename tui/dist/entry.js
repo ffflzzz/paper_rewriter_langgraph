@@ -34055,22 +34055,19 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   streamingText,
   isStreaming
 }) {
-  const termHeight = process.stdout.rows || 24;
-  const reservedLines = 3;
-  const maxVisibleLines = Math.max(5, termHeight - reservedLines);
-  const allLines = [];
+  const contentLines = [];
   for (const msg of messages) {
     if (msg.role === "tool" && msg.toolName) {
-      allLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
+      contentLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
       if (msg.content) {
         const preview = msg.content.length > 120 ? msg.content.slice(0, 120) + "\u2026" : msg.content;
-        allLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
+        contentLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
       }
     } else {
       const wrapped = wrapText2(msg.content, 80);
       for (let i = 0; i < wrapped.length; i++) {
         const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
-        allLines.push({
+        contentLines.push({
           key: `${msg.id}-${i}`,
           prefix,
           text: wrapped[i],
@@ -34080,20 +34077,22 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       }
     }
     if (msg.role === "user") {
-      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500\u2500\u2500", color: theme.dimGreen });
+      contentLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500\u2500\u2500", color: theme.dimGreen });
     }
   }
   if (isStreaming && streamingText) {
     const wrapped = wrapText2(streamingText, 80);
     for (let i = 0; i < wrapped.length; i++) {
-      allLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
+      contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
-  const visibleLines = allLines.slice(-maxVisibleLines);
-  const emptyLines = Math.max(0, maxVisibleLines - visibleLines.length);
+  const rows = process.stdout.rows || 24;
+  const reserved = 3;
+  const available = rows - reserved;
+  const padLines = Math.max(0, available - contentLines.length);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    Array.from({ length: emptyLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { height: 1, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `empty-${i}`)),
-    visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { height: 1, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),
+    contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
       line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
     ] }, line.key))

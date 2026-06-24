@@ -33924,32 +33924,68 @@ var PROVIDERS = {
   "mimo": {
     name: "MiMo (\u5C0F\u7C73)",
     baseUrl: "https://token-plan-cn.xiaomimimo.com/v1",
-    models: ["mimo-v2.5-pro", "mimo-v2-flash"]
-  },
-  "openai": {
-    name: "OpenAI",
-    baseUrl: "https://api.openai.com/v1",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini"]
+    models: ["mimo-v2.5-pro", "mimo-v2-flash"],
+    envKey: "MIMO_API_KEY"
   },
   "anthropic": {
     name: "Anthropic",
     baseUrl: "https://api.anthropic.com/v1",
-    models: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"]
+    models: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+    envKey: "ANTHROPIC_API_KEY"
+  },
+  "openai-codex": {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini"],
+    envKey: "OPENAI_API_KEY"
   },
   "openrouter": {
     name: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
-    models: ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o", "google/gemini-2.0-flash"]
+    models: ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o", "google/gemini-2.0-flash"],
+    envKey: "OPENROUTER_API_KEY"
+  },
+  "nous": {
+    name: "Nous Portal",
+    baseUrl: "https://api.nousresearch.com/v1",
+    models: ["hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b"],
+    envKey: "NOUS_API_KEY"
+  },
+  "zai": {
+    name: "z.ai (\u667A\u8C31 GLM)",
+    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+    models: ["glm-4-plus", "glm-4-flash"],
+    envKey: "GLM_API_KEY"
+  },
+  "kimi-coding": {
+    name: "Kimi (\u6708\u4E4B\u6697\u9762)",
+    baseUrl: "https://api.moonshot.cn/v1",
+    models: ["moonshot-v1-128k", "moonshot-v1-32k"],
+    envKey: "KIMI_API_KEY"
+  },
+  "minimax": {
+    name: "MiniMax",
+    baseUrl: "https://api.minimax.chat/v1",
+    models: ["abab6.5s-chat", "abab6.5-chat"],
+    envKey: "MINIMAX_API_KEY"
+  },
+  "minimax-cn": {
+    name: "MiniMax (\u56FD\u5185)",
+    baseUrl: "https://api.minimax.chat/v1",
+    models: ["abab6.5s-chat", "abab6.5-chat"],
+    envKey: "MINIMAX_CN_API_KEY"
   },
   "deepseek": {
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com/v1",
-    models: ["deepseek-chat", "deepseek-reasoner"]
+    models: ["deepseek-chat", "deepseek-reasoner"],
+    envKey: "DEEPSEEK_API_KEY"
   },
   "custom": {
     name: "Custom (OpenAI\u517C\u5BB9)",
     baseUrl: "",
-    models: []
+    models: [],
+    envKey: "CUSTOM_API_KEY"
   }
 };
 function loadConfig() {

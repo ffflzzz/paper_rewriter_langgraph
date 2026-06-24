@@ -36,7 +36,6 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
-  // Build all content lines
   const contentLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 
   for (const msg of messages) {
@@ -71,21 +70,9 @@ export const TranscriptPane = memo(function TranscriptPane({
     }
   }
 
-  // Terminal height minus reserved lines (separator + input + status bar)
-  const rows = process.stdout.rows || 24
-  const reserved = 3
-  const available = rows - reserved
-
-  // How many empty lines to push content to bottom
-  const padLines = Math.max(0, available - contentLines.length)
-
   return (
     <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
-      {/* Empty space at top */}
-      {Array.from({ length: padLines }, (_, i) => (
-        <Box key={`pad-${i}`} height={1}><Text> </Text></Box>
-      ))}
-      {/* Content at bottom */}
+      {/* Content at top */}
       {contentLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>}

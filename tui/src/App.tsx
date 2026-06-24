@@ -167,7 +167,7 @@ export function App() {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      {/* Transcript */}
+      {/* Transcript — messages above input */}
       <TranscriptPane messages={messages} streamingText={streamingText} isStreaming={isStreaming} />
 
       {/* Tool call cards */}
@@ -176,12 +176,7 @@ export function App() {
       {/* HITL prompt */}
       {hitlPrompt && hitlCallback && <HitlPrompt prompt={hitlPrompt} onAnswer={hitlCallback} />}
 
-      {/* Status rule */}
-      <Box>
-        <Text color={theme.burgundy}>{'─'.repeat(process.stdout.columns || 80)}</Text>
-      </Box>
-
-      {/* Input */}
+      {/* Input — at the bottom */}
       <Box paddingX={1}>
         <Text color={theme.green} bold>{'▸ '}</Text>
         <Text color={theme.white}>{inputText}</Text>
@@ -197,6 +192,11 @@ export function App() {
         model={config?.model || 'unknown'}
         startedAt={startedAt}
       />
+
+      {/* Status rule — separator at very bottom */}
+      <Box>
+        <Text color={theme.burgundy}>{'─'.repeat(process.stdout.columns || 80)}</Text>
+      </Box>
     </Box>
   )
 }

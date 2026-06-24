@@ -34086,17 +34086,10 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
-  const rows = process.stdout.rows || 24;
-  const reserved = 3;
-  const available = rows - reserved;
-  const padLines = Math.max(0, available - contentLines.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { height: 1, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),
-    contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
-      line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
-    ] }, line.key))
-  ] });
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
+  ] }, line.key)) });
 });
 
 // src/components/StatusBar.tsx
@@ -34453,7 +34446,6 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
     toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
     hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingX: 1, children: [
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
@@ -34469,7 +34461,8 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
         model: config?.model || "unknown",
         startedAt
       }
-    )
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2500".repeat(process.stdout.columns || 80) }) })
   ] });
 }
 

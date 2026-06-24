@@ -33824,9 +33824,9 @@ var theme = {
   /** Dark green — background accents */
   darkGreen: "#004400",
   /** Burgundy — fixed components (status bar, separators, headers) */
-  burgundy: "#882244",
+  burgundy: "#cc3366",
   /** Dim burgundy — secondary fixed elements */
-  dimBurgundy: "#662233",
+  dimBurgundy: "#993355",
   /** Red — errors, warnings */
   red: "#ff3333",
   /** Yellow — tool calls, info */

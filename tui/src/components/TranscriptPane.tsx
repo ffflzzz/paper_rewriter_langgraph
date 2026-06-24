@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { Box, Text } from 'ink'
+import { Box, Text, useStdoutDimensions } from 'ink'
 import { theme } from '../lib/theme.js'
 import { wrapText } from '../lib/utils.js'
 
@@ -36,6 +36,8 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
+  const { rows } = useStdoutDimensions()
+
   const contentLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 
   for (const msg of messages) {
@@ -70,10 +72,9 @@ export const TranscriptPane = memo(function TranscriptPane({
     }
   }
 
-  // Terminal height - reserved lines (input + status bar + separator)
-  const rows = process.stdout.rows || 24
+  // Reserve: input(1) + status bar(1) + separator(1) = 3
   const reserved = 3
-  const available = rows - reserved
+  const available = Math.max(5, rows - reserved)
   const padLines = Math.max(0, available - contentLines.length)
 
   return (

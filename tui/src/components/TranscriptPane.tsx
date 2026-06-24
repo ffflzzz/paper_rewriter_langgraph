@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { Box, Text, useStdoutDimensions } from 'ink'
+import { Box, Text, useStdout } from 'ink'
 import { theme } from '../lib/theme.js'
 import { wrapText } from '../lib/utils.js'
 
@@ -36,7 +36,8 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
-  const { rows } = useStdoutDimensions()
+  const { stdout } = useStdout()
+  const rows = stdout.rows || 24
 
   const contentLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 

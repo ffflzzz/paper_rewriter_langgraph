@@ -31,6 +31,16 @@ function messageColor(role: string): string {
   return theme.dimGreen
 }
 
+function getRows(): number {
+  try {
+    const { execSync } = require('child_process')
+    const r = parseInt(execSync('tput lines 2>/dev/null || echo 24', { encoding: 'utf-8' }).trim(), 10)
+    return r > 0 ? r : 24
+  } catch {
+    return 24
+  }
+}
+
 export const TranscriptPane = memo(function TranscriptPane({
   messages,
   streamingText,
@@ -70,19 +80,16 @@ export const TranscriptPane = memo(function TranscriptPane({
     }
   }
 
-  // Get terminal height - try multiple methods
-  const rows = process.stdout.rows || parseInt(process.env.LINES || '24', 10)
+  const rows = getRows()
   const reserved = 3
   const available = Math.max(5, rows - reserved)
   const padLines = Math.max(0, available - contentLines.length)
 
   return (
     <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
-      {/* Empty lines at top to push content to bottom */}
       {Array.from({ length: padLines }, (_, i) => (
         <Box key={`pad-${i}`}><Text> </Text></Box>
       ))}
-      {/* Content at bottom */}
       {contentLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>}

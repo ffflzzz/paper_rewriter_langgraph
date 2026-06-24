@@ -34050,6 +34050,15 @@ function messageColor(role) {
   if (role === "tool") return theme.yellow;
   return theme.dimGreen;
 }
+function getRows() {
+  try {
+    const { execSync } = __require("child_process");
+    const r = parseInt(execSync("tput lines 2>/dev/null || echo 24", { encoding: "utf-8" }).trim(), 10);
+    return r > 0 ? r : 24;
+  } catch {
+    return 24;
+  }
+}
 var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   messages,
   streamingText,
@@ -34086,7 +34095,7 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
-  const rows = process.stdout.rows || parseInt(process.env.LINES || "24", 10);
+  const rows = getRows();
   const reserved = 3;
   const available = Math.max(5, rows - reserved);
   const padLines = Math.max(0, available - contentLines.length);

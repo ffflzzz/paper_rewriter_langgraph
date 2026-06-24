@@ -145,3 +145,4 @@
 {"timestamp": 1782233505.304124, "model": "mimo-v2.5-pro", "input_tokens": 43928, "output_tokens": 157, "total_tokens": 44085, "cost": 0.044242000000000004, "run_id": "", "node": "agent", "prompt_version": null}
 {"timestamp": 1782233508.722146, "model": "mimo-v2.5-pro", "input_tokens": 44134, "output_tokens": 56, "total_tokens": 44190, "cost": 0.044246, "run_id": "", "node": "agent", "prompt_version": null}
 {"timestamp": 1782233518.1064482, "model": "mimo-v2.5-pro", "input_tokens": 44233, "output_tokens": 457, "total_tokens": 44690, "cost": 0.04514700000000001, "run_id": "", "node": "agent", "prompt_version": null}
+{"timestamp": 1782269662.0313902, "model": "mimo-v2.5-pro", "input_tokens": 1720, "output_tokens": 198, "total_tokens": 1918, "cost": 0.0021160000000000003, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}

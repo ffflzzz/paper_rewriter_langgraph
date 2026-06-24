@@ -1,24 +1,48 @@
 #!/bin/bash
-# Paper Rewriter — Entry point
-# Resolves symlink to find the real project directory
+# Paper Rewriter — One-command launcher
+# Starts the AG-UI backend (if not running) and launches the TUI
 
-# Resolve symlink to get the real script directory
 SCRIPT_PATH="$(readlink -f "$0")"
 PROJECT_DIR="$(dirname "$SCRIPT_PATH")"
-TUI_DIR="$PROJECT_DIR/tui"
 NODE="/home/lex/.hermes/node/bin/node"
 
-# Check if the TUI is built
-if [ ! -f "$TUI_DIR/dist/entry.js" ]; then
-    echo "Building TUI..."
-    cd "$TUI_DIR" && "$NODE" scripts/build.mjs
-    if [ $? -ne 0 ]; then
-        echo "Build failed. Falling back to Python terminal UI."
+# Check if AG-UI backend is already running
+if curl -s --connect-timeout 2 --max-time 3 http://localhost:8765/api/status >/dev/null 2>&1; then
+    echo "AG-UI backend already running."
+else
+    echo "Starting AG-UI backend..."
+    cd "$PROJECT_DIR"
+    python3 -B -m agent.server_agui &
+    BACKEND_PID=$!
+    
+    # Wait for backend to be ready
+    for i in $(seq 1 30); do
+        if curl -s --connect-timeout 2 --max-time 3 http://localhost:8765/api/status >/dev/null 2>&1; then
+            echo "Backend ready."
+            break
+        fi
+        sleep 1
+    done
+    
+    # Check if backend started
+    if ! curl -s --connect-timeout 2 --max-time 3 http://localhost:8765/api/status >/dev/null 2>&1; then
+        echo "Failed to start backend. Falling back to Python TUI (local mode)."
         cd "$PROJECT_DIR"
         exec python3 terminal_ui.py "$@"
     fi
 fi
 
 # Launch the TypeScript TUI
+TUI_DIR="$PROJECT_DIR/tui"
+if [ ! -f "$TUI_DIR/dist/entry.js" ]; then
+    echo "Building TUI..."
+    cd "$TUI_DIR" && "$NODE" scripts/build.mjs
+    if [ $? -ne 0 ]; then
+        echo "Build failed. Falling back to Python TUI."
+        cd "$PROJECT_DIR"
+        exec python3 terminal_ui.py "$@"
+    fi
+fi
+
 cd "$PROJECT_DIR"
 exec "$NODE" "$TUI_DIR/dist/entry.js" "$@"

@@ -34086,12 +34086,8 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
-  const rows = process.stdout.rows || 24;
-  const reserved = 3;
-  const available = rows - reserved;
-  const padLines = Math.max(0, available - contentLines.length);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { height: 1, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexGrow: 1 }),
     contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
       line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })

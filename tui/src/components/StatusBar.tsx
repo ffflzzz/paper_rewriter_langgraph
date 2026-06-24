@@ -15,40 +15,26 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
   const [elapsed, setElapsed] = useState('0m')
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const update = () => {
       if (startedAt) {
         const mins = Math.floor((Date.now() - startedAt) / 60000)
         const hrs = Math.floor(mins / 60)
         const m = mins % 60
         setElapsed(hrs > 0 ? `${hrs}h ${m}m` : `${m}m`)
       }
-    }, 10000)
+    }
+    update()
+    const timer = setInterval(update, 10000)
     return () => clearInterval(timer)
   }, [startedAt])
 
-  const statusIcon = status === 'idle' ? '◇' : status === 'processing' ? '●' : status === 'streaming' ? '▸' : '✗'
-  const statusColor = status === 'error' ? theme.red : status === 'idle' ? theme.dimGreen : theme.green
-
+  // Hermes format: ⚕ model · duration
   return (
-    <Box paddingX={1} justifyContent="space-between">
-      {/* Left: status */}
-      <Box>
-        <Text color={theme.green}>▸ </Text>
-        <Text color={statusColor}>{statusIcon} {status === 'idle' ? 'ready' : status === 'processing' ? 'processing...' : status === 'streaming' ? 'streaming...' : 'error'}</Text>
-      </Box>
-
-      {/* Right: model + tools + turns + duration + session */}
-      <Box>
-        <Text color={theme.dimGreen}>{model}</Text>
-        <Text color={theme.dimGreen}> │ </Text>
-        <Text color={theme.dimGreen}>tools:{toolCount}</Text>
-        <Text color={theme.dimGreen}> │ </Text>
-        <Text color={theme.dimGreen}>turns:{turnCount}</Text>
-        <Text color={theme.dimGreen}> │ </Text>
-        <Text color={theme.dimGreen}>{elapsed}</Text>
-        <Text color={theme.dimGreen}> │ </Text>
-        <Text color={theme.dimGreen}>{sessionId}</Text>
-      </Box>
+    <Box paddingX={1}>
+      <Text color={theme.green}>⚕ </Text>
+      <Text color={theme.dimGreen}>{model}</Text>
+      <Text color={theme.dimGreen}> · </Text>
+      <Text color={theme.dimGreen}>{elapsed}</Text>
     </Box>
   )
 }

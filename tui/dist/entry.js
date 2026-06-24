@@ -34054,44 +34054,23 @@ var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt }) {
   const [elapsed, setElapsed] = (0, import_react23.useState)("0m");
   (0, import_react23.useEffect)(() => {
-    const timer = setInterval(() => {
+    const update = () => {
       if (startedAt) {
         const mins = Math.floor((Date.now() - startedAt) / 6e4);
         const hrs = Math.floor(mins / 60);
         const m = mins % 60;
         setElapsed(hrs > 0 ? `${hrs}h ${m}m` : `${m}m`);
       }
-    }, 1e4);
+    };
+    update();
+    const timer = setInterval(update, 1e4);
     return () => clearInterval(timer);
   }, [startedAt]);
-  const statusIcon = status === "idle" ? "\u25C7" : status === "processing" ? "\u25CF" : status === "streaming" ? "\u25B8" : "\u2717";
-  const statusColor = status === "error" ? theme.red : status === "idle" ? theme.dimGreen : theme.green;
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, justifyContent: "space-between", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, children: "\u25B8 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: statusColor, children: [
-        statusIcon,
-        " ",
-        status === "idle" ? "ready" : status === "processing" ? "processing..." : status === "streaming" ? "streaming..." : "error"
-      ] })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: model }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
-        "tools:",
-        toolCount
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
-        "turns:",
-        turnCount
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: elapsed }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: sessionId })
-    ] })
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, children: "\u2695 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: model }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \xB7 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: elapsed })
   ] });
 }
 
@@ -34285,6 +34264,11 @@ function App2() {
   const [turnCount, setTurnCount] = (0, import_react27.useState)(0);
   const [abortFn, setAbortFn] = (0, import_react27.useState)(null);
   const [startedAt] = (0, import_react27.useState)(() => Date.now());
+  const [inputReady, setInputReady] = (0, import_react27.useState)(false);
+  (0, import_react27.useEffect)(() => {
+    const timer = setTimeout(() => setInputReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
   (0, import_react27.useEffect)(() => {
     if (config && !showSetup) {
       setMessages([{
@@ -34302,42 +34286,43 @@ Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
     setShowSetup(false);
   }, []);
   use_input_default((input, key) => {
+    if (!inputReady) return;
     if (showSetup) return;
     if (hitlPrompt) return;
     if (key.return) {
-      if (inputText.trim()) {
-        if (inputText.trim() === "/quit") {
-          exit();
-          return;
-        }
-        if (inputText.trim() === "/help") {
-          setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show status\n  /config  \u2014 Reconfigure model\n  /quit    \u2014 Exit", timestamp: Date.now() }]);
-          setInputText("");
-          return;
-        }
-        if (inputText.trim() === "/new") {
-          setMessages([]);
-          setToolCalls([]);
-          setTurnCount(0);
-          setInputText("");
-          return;
-        }
-        if (inputText.trim() === "/status") {
-          setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `Session: ${sessionId}
+      const text = inputText.trim();
+      if (!text) return;
+      if (text === "/quit") {
+        exit();
+        return;
+      }
+      if (text === "/help") {
+        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show status\n  /config  \u2014 Reconfigure model\n  /quit    \u2014 Exit", timestamp: Date.now() }]);
+        setInputText("");
+        return;
+      }
+      if (text === "/new") {
+        setMessages([]);
+        setToolCalls([]);
+        setTurnCount(0);
+        setInputText("");
+        return;
+      }
+      if (text === "/status") {
+        setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `Session: ${sessionId}
 Model: ${config?.model || "unknown"}
 Messages: ${messages.length}
 Turns: ${turnCount}`, timestamp: Date.now() }]);
-          setInputText("");
-          return;
-        }
-        if (inputText.trim() === "/config") {
-          setShowSetup(true);
-          setInputText("");
-          return;
-        }
-        sendMessage(inputText.trim());
         setInputText("");
+        return;
       }
+      if (text === "/config") {
+        setShowSetup(true);
+        setInputText("");
+        return;
+      }
+      sendMessage(text);
+      setInputText("");
       return;
     }
     if (key.backspace || key.delete) {

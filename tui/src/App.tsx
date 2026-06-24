@@ -34,6 +34,13 @@ export function App() {
   const [turnCount, setTurnCount] = useState(0)
   const [abortFn, setAbortFn] = useState<(() => void) | null>(null)
   const [startedAt] = useState(() => Date.now())
+  const [inputReady, setInputReady] = useState(false)
+
+  // Delay input capture to avoid capturing the launch command
+  useEffect(() => {
+    const timer = setTimeout(() => setInputReady(true), 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Show welcome message after setup
   useEffect(() => {
@@ -53,34 +60,36 @@ export function App() {
   }, [])
 
   useInput((input, key) => {
+    if (!inputReady) return
     if (showSetup) return
     if (hitlPrompt) return
 
     if (key.return) {
-      if (inputText.trim()) {
-        if (inputText.trim() === '/quit') { exit(); return }
-        if (inputText.trim() === '/help') {
-          setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: 'Commands:\n  /help    — Show this help\n  /new     — New session\n  /status  — Show status\n  /config  — Reconfigure model\n  /quit    — Exit', timestamp: Date.now() }])
-          setInputText('')
-          return
-        }
-        if (inputText.trim() === '/new') {
-          setMessages([]); setToolCalls([]); setTurnCount(0); setInputText('')
-          return
-        }
-        if (inputText.trim() === '/status') {
-          setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `Session: ${sessionId}\nModel: ${config?.model || 'unknown'}\nMessages: ${messages.length}\nTurns: ${turnCount}`, timestamp: Date.now() }])
-          setInputText('')
-          return
-        }
-        if (inputText.trim() === '/config') {
-          setShowSetup(true)
-          setInputText('')
-          return
-        }
-        sendMessage(inputText.trim())
+      const text = inputText.trim()
+      if (!text) return
+
+      if (text === '/quit') { exit(); return }
+      if (text === '/help') {
+        setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: 'Commands:\n  /help    — Show this help\n  /new     — New session\n  /status  — Show status\n  /config  — Reconfigure model\n  /quit    — Exit', timestamp: Date.now() }])
         setInputText('')
+        return
       }
+      if (text === '/new') {
+        setMessages([]); setToolCalls([]); setTurnCount(0); setInputText('')
+        return
+      }
+      if (text === '/status') {
+        setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `Session: ${sessionId}\nModel: ${config?.model || 'unknown'}\nMessages: ${messages.length}\nTurns: ${turnCount}`, timestamp: Date.now() }])
+        setInputText('')
+        return
+      }
+      if (text === '/config') {
+        setShowSetup(true)
+        setInputText('')
+        return
+      }
+      sendMessage(text)
+      setInputText('')
       return
     }
 

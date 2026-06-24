@@ -31,7 +31,6 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
     return () => clearInterval(timer)
   }, [startedAt])
 
-  // Spinner animation during streaming
   useEffect(() => {
     if (status !== 'streaming') return
     const timer = setInterval(() => {
@@ -40,27 +39,22 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
     return () => clearInterval(timer)
   }, [status])
 
-  // Status text
-  const statusText = status === 'streaming'
-    ? 'streaming...'
-    : status === 'processing'
-      ? 'processing...'
-      : null
-
+  // Hermes format: ⚕ model · status · ⚙ tools · duration
   return (
     <Box paddingX={1}>
       <Text color={theme.burgundy}>⚕ </Text>
       <Text color={theme.dimBurgundy}>{model}</Text>
-      {statusText && (
+      {status !== 'idle' && (
         <>
           <Text color={theme.dimBurgundy}> · </Text>
-          {status === 'streaming' && (
-            <Text color={theme.burgundy}>{SPINNER_FRAMES[spinnerIdx]} </Text>
-          )}
-          <Text color={theme.dimBurgundy}>{statusText}</Text>
+          {status === 'streaming' && <Text color={theme.burgundy}>{SPINNER_FRAMES[spinnerIdx]} </Text>}
+          <Text color={theme.dimBurgundy}>{status}</Text>
         </>
       )}
-      <Text color={theme.dimBurgundy}> · {elapsed}</Text>
+      <Text color={theme.dimBurgundy}> · </Text>
+      <Text color={theme.dimBurgundy}>⚙ {toolCount}</Text>
+      <Text color={theme.dimBurgundy}> · </Text>
+      <Text color={theme.dimBurgundy}>{elapsed}</Text>
     </Box>
   )
 }

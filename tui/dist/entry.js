@@ -34135,22 +34135,24 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
     }, 80);
     return () => clearInterval(timer);
   }, [status]);
-  const statusText = status === "streaming" ? "streaming..." : status === "processing" ? "processing..." : null;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.burgundy, children: "\u2695 " }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: model }),
-    statusText && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+    status !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
       status === "streaming" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.burgundy, children: [
         SPINNER_FRAMES[spinnerIdx],
         " "
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: statusText })
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: status })
     ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimBurgundy, children: [
-      " \xB7 ",
-      elapsed
-    ] })
+      "\u2699 ",
+      toolCount
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: elapsed })
   ] });
 }
 
@@ -34462,10 +34464,16 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
     toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
     hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingX: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", paddingX: 1, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u250C\u2500 Input \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510" }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2502 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "                     \u2502" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518" })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       StatusBar,

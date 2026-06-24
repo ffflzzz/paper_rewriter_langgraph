@@ -176,11 +176,17 @@ export function App() {
       {/* HITL prompt */}
       {hitlPrompt && hitlCallback && <HitlPrompt prompt={hitlPrompt} onAnswer={hitlCallback} />}
 
-      {/* Input — at the bottom */}
-      <Box paddingX={1}>
-        <Text color={theme.green} bold>{'▸ '}</Text>
-        <Text color={theme.white}>{inputText}</Text>
-        <Text color={theme.dimGreen}>{'▌'}</Text>
+      {/* Input — wrapped box */}
+      <Box flexDirection="column" paddingX={1}>
+        <Text color={theme.burgundy}>┌─ Input ─────────────────────────────────────────┐</Text>
+        <Box>
+          <Text color={theme.burgundy}>│ </Text>
+          <Text color={theme.green} bold>{'▸ '}</Text>
+          <Text color={theme.white}>{inputText}</Text>
+          <Text color={theme.dimGreen}>{'▌'}</Text>
+          <Text color={theme.burgundy}>                     │</Text>
+        </Box>
+        <Text color={theme.burgundy}>└─────────────────────────────────────────────────┘</Text>
       </Box>
 
       {/* Status bar */}

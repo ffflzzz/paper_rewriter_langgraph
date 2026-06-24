@@ -21,7 +21,7 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
 
   // Force re-render every 10s to update elapsed time
   useEffect(() => {
-    const timer = setInterval(() => setTick(t => t + 1), 10000)
+    const timer = setInterval(() => setTick(t => t + 1), 1000)
     return () => clearInterval(timer)
   }, [])
 

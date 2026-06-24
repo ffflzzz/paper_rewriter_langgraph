@@ -34116,7 +34116,7 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
   const [tick, setTick] = (0, import_react23.useState)(0);
   const [spinnerIdx, setSpinnerIdx] = (0, import_react23.useState)(0);
   (0, import_react23.useEffect)(() => {
-    const timer = setInterval(() => setTick((t) => t + 1), 1e4);
+    const timer = setInterval(() => setTick((t) => t + 1), 1e3);
     return () => clearInterval(timer);
   }, []);
   (0, import_react23.useEffect)(() => {

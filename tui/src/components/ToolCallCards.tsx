@@ -11,30 +11,17 @@ export const ToolCallCards = memo(function ToolCallCards({ toolCalls }: Props) {
   if (toolCalls.length === 0) return null
 
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" paddingLeft={1}>
       {toolCalls.map(tc => (
-        <Box key={tc.id} flexDirection="column" paddingLeft={1}>
+        <Box key={tc.id} flexDirection="column">
           <Box>
             <Text color={theme.yellow}>🔧 </Text>
-            <Text color={theme.yellow} bold>
-              {tc.name}
-            </Text>
-            <Text color={theme.dimGreen}>
-              {' '}
-              {tc.status === 'running' ? '⏳' : '✅'}
-            </Text>
+            <Text color={theme.yellow} bold>{tc.name}</Text>
           </Box>
-          {tc.args && (
-            <Box paddingLeft={3}>
-              <Text color={theme.dimGreen} dimColor>
-                {tc.args.length > 80 ? tc.args.slice(0, 80) + '…' : tc.args}
-              </Text>
-            </Box>
-          )}
           {tc.status === 'done' && tc.result && (
             <Box paddingLeft={3}>
               <Text color={theme.dimGreen}>
-                → {tc.result.length > 120 ? tc.result.slice(0, 120) + '…' : tc.result}
+                {tc.result.length > 120 ? tc.result.slice(0, 120) + '…' : tc.result}
               </Text>
             </Box>
           )}

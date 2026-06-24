@@ -74,6 +74,7 @@ export interface ToolCallInfo {
 export interface HitlPromptData {
   message: string
   options: string[]
+  toolName?: string
 }
 
 export interface SessionInfo {

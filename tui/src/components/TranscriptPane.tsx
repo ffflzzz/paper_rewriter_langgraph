@@ -18,14 +18,14 @@ interface Props {
 }
 
 function messagePrefix(role: string): string {
-  if (role === 'user') return '▸ You: '
+  if (role === 'user') return '● '
   if (role === 'assistant') return '│ '
   if (role === 'tool') return '🔧 '
   return '  '
 }
 
 function messageColor(role: string): string {
-  if (role === 'user') return theme.white
+  if (role === 'user') return theme.orange
   if (role === 'assistant') return theme.green
   if (role === 'tool') return theme.yellow
   return theme.dimGreen
@@ -36,12 +36,10 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
-  // 只显示最后N行，最新的在底部（像Hermes一样）
   const termHeight = process.stdout.rows || 24
   const maxVisibleLines = Math.max(5, termHeight - 8)
 
-  // 展开所有消息为行
-  const allLines: Array<{ key: string; prefix: string; text: string; color: string }> = []
+  const allLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 
   for (const msg of messages) {
     if (msg.role === 'tool' && msg.toolName) {
@@ -54,25 +52,29 @@ export const TranscriptPane = memo(function TranscriptPane({
       const wrapped = wrapText(msg.content, 80)
       for (let i = 0; i < wrapped.length; i++) {
         const prefix = i === 0 ? messagePrefix(msg.role) : '│ '
-        allLines.push({ key: `${msg.id}-${i}`, prefix, text: wrapped[i], color: messageColor(msg.role) })
+        allLines.push({
+          key: `${msg.id}-${i}`,
+          prefix,
+          text: wrapped[i],
+          color: messageColor(msg.role),
+          prefixColor: msg.role === 'user' ? theme.orange : undefined,
+        })
       }
     }
-    // 用户消息后加分隔线
+    // Separator after user messages
     if (msg.role === 'user') {
-      allLines.push({ key: `${msg.id}-sep`, prefix: '', text: '─'.repeat(40), color: theme.dimGreen })
+      allLines.push({ key: `${msg.id}-sep`, prefix: '', text: '───', color: theme.dimGreen })
     }
   }
 
-  // Streaming行
+  // Streaming lines
   if (isStreaming && streamingText) {
     const wrapped = wrapText(streamingText, 80)
     for (let i = 0; i < wrapped.length; i++) {
-      const prefix = i === 0 ? '│ ' : '│ '
-      allLines.push({ key: `streaming-${i}`, prefix, text: wrapped[i], color: theme.green })
+      allLines.push({ key: `streaming-${i}`, prefix: '│ ', text: wrapped[i], color: theme.green })
     }
   }
 
-  // 取最后N行
   const visibleLines = allLines.slice(-maxVisibleLines)
 
   return (
@@ -80,7 +82,7 @@ export const TranscriptPane = memo(function TranscriptPane({
       {visibleLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && (
-            <Text color={theme.dimGreen}>{line.prefix}</Text>
+            <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>
           )}
           <Text color={line.color}>{line.text}</Text>
         </Box>

@@ -1370,7 +1370,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState6(initialState) {
+        function useState5(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -2173,7 +2173,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState6;
+        exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -7931,7 +7931,7 @@ var require_react_reconciler_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment = 7;
+        var Fragment3 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -8071,7 +8071,7 @@ var require_react_reconciler_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment:
+            case Fragment3:
               return "Fragment";
             case HostComponent:
               return type;
@@ -11205,7 +11205,7 @@ var require_react_reconciler_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-            if (current2 === null || current2.tag !== Fragment) {
+            if (current2 === null || current2.tag !== Fragment3) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -11608,7 +11608,7 @@ var require_react_reconciler_development = __commonJS({
               if (child.key === key) {
                 var elementType = element.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment) {
+                  if (child.tag === Fragment3) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element.props.children);
                     existing.return = returnFiber;
@@ -17099,7 +17099,7 @@ var require_react_reconciler_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment:
+            case Fragment3:
               return updateFragment(current2, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current2, workInProgress2, renderLanes2);
@@ -17536,7 +17536,7 @@ var require_react_reconciler_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment:
+            case Fragment3:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -22304,7 +22304,7 @@ var require_react_reconciler_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment, elements, key, mode);
+          var fiber = createFiber(Fragment3, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -33827,6 +33827,8 @@ var theme = {
   red: "#ff3333",
   /** Yellow — tool calls, info */
   yellow: "#cccc00",
+  /** Orange — user messages, highlights */
+  orange: "#ff8800",
   /** Cyan — user input echo */
   cyan: "#00cccc",
   /** White — emphasis */
@@ -33997,13 +33999,13 @@ function wrapText2(text, width) {
 // src/components/TranscriptPane.tsx
 var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
 function messagePrefix(role) {
-  if (role === "user") return "\u25B8 You: ";
+  if (role === "user") return "\u25CF ";
   if (role === "assistant") return "\u2502 ";
   if (role === "tool") return "\u{1F527} ";
   return "  ";
 }
 function messageColor(role) {
-  if (role === "user") return theme.white;
+  if (role === "user") return theme.orange;
   if (role === "assistant") return theme.green;
   if (role === "tool") return theme.yellow;
   return theme.dimGreen;
@@ -34027,23 +34029,28 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       const wrapped = wrapText2(msg.content, 80);
       for (let i = 0; i < wrapped.length; i++) {
         const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
-        allLines.push({ key: `${msg.id}-${i}`, prefix, text: wrapped[i], color: messageColor(msg.role) });
+        allLines.push({
+          key: `${msg.id}-${i}`,
+          prefix,
+          text: wrapped[i],
+          color: messageColor(msg.role),
+          prefixColor: msg.role === "user" ? theme.orange : void 0
+        });
       }
     }
     if (msg.role === "user") {
-      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500".repeat(40), color: theme.dimGreen });
+      allLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500\u2500\u2500", color: theme.dimGreen });
     }
   }
   if (isStreaming && streamingText) {
     const wrapped = wrapText2(streamingText, 80);
     for (let i = 0; i < wrapped.length; i++) {
-      const prefix = i === 0 ? "\u2502 " : "\u2502 ";
-      allLines.push({ key: `streaming-${i}`, prefix, text: wrapped[i], color: theme.green });
+      allLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
   const visibleLines = allLines.slice(-maxVisibleLines);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
-    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: theme.dimGreen, children: line.prefix }),
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
   ] }, line.key)) });
 });
@@ -34051,8 +34058,10 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
 // src/components/StatusBar.tsx
 var import_react23 = __toESM(require_react(), 1);
 var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+var SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
 function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt }) {
   const [elapsed, setElapsed] = (0, import_react23.useState)("0m");
+  const [spinnerIdx, setSpinnerIdx] = (0, import_react23.useState)(0);
   (0, import_react23.useEffect)(() => {
     const update = () => {
       if (startedAt) {
@@ -34066,11 +34075,29 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
     const timer = setInterval(update, 1e4);
     return () => clearInterval(timer);
   }, [startedAt]);
+  (0, import_react23.useEffect)(() => {
+    if (status !== "streaming") return;
+    const timer = setInterval(() => {
+      setSpinnerIdx((i) => (i + 1) % SPINNER_FRAMES.length);
+    }, 80);
+    return () => clearInterval(timer);
+  }, [status]);
+  const statusText = status === "streaming" ? "streaming..." : status === "processing" ? "processing..." : null;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, children: "\u2695 " }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: model }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \xB7 " }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: elapsed })
+    statusText && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \xB7 " }),
+      status === "streaming" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.green, children: [
+        SPINNER_FRAMES[spinnerIdx],
+        " "
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: statusText })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
+      " \xB7 ",
+      elapsed
+    ] })
   ] });
 }
 
@@ -34079,20 +34106,12 @@ var import_react24 = __toESM(require_react(), 1);
 var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls }) {
   if (toolCalls.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", marginTop: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        tc.status === "running" ? "\u23F3" : "\u2705"
-      ] })
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name })
     ] }),
-    tc.args && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, dimColor: true, children: tc.args.length > 80 ? tc.args.slice(0, 80) + "\u2026" : tc.args }) }),
-    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
-      "\u2192 ",
-      tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result
-    ] }) })
+    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result }) })
   ] }, tc.id)) });
 });
 
@@ -34109,29 +34128,25 @@ var HitlPrompt = (0, import_react25.memo)(function HitlPrompt2({ prompt, onAnswe
       onAnswer("skip");
     }
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-    Box_default,
-    {
-      flexDirection: "column",
-      borderStyle: "round",
-      borderColor: theme.yellow,
-      paddingLeft: 1,
-      paddingRight: 1,
-      marginTop: 1,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: "\u26A1 HITL Confirmation" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.white, children: prompt.message }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { marginTop: 1, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.green, bold: true, children: "[y]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "es " }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.red, bold: true, children: "[n]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "o " }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimWhite, bold: true, children: "[s]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "kip" })
-        ] })
-      ]
-    }
-  );
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, marginTop: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, children: "\u26A0 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: "CONFIRM" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.white, children: prompt.toolName || "action" }),
+      prompt.message && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: prompt.message.length > 80 ? prompt.message.slice(0, 80) + "\u2026" : prompt.message })
+      ] })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.green, children: "y" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "/yes \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.red, children: "n" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "/no \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimWhite, children: "skip" })
+    ] })
+  ] });
 });
 
 // src/components/SetupWizard.tsx
@@ -34297,7 +34312,7 @@ Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
         return;
       }
       if (text === "/help") {
-        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show status\n  /config  \u2014 Reconfigure model\n  /quit    \u2014 Exit", timestamp: Date.now() }]);
+        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "/help    Show this help\n/new     New session\n/status  Show status\n/config  Reconfigure model\n/quit    Exit", timestamp: Date.now() }]);
         setInputText("");
         return;
       }
@@ -34309,10 +34324,10 @@ Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
         return;
       }
       if (text === "/status") {
-        setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `Session: ${sessionId}
-Model: ${config?.model || "unknown"}
-Messages: ${messages.length}
-Turns: ${turnCount}`, timestamp: Date.now() }]);
+        setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `model: ${config?.model || "unknown"}
+session: ${sessionId}
+messages: ${messages.length}
+turns: ${turnCount}`, timestamp: Date.now() }]);
         setInputText("");
         return;
       }
@@ -34396,10 +34411,7 @@ Turns: ${turnCount}`, timestamp: Date.now() }]);
     hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingX: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.green, bold: true, children: [
-        "\u25B8 ",
-        " "
-      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
     ] }),

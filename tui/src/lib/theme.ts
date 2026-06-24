@@ -10,6 +10,8 @@ export const theme = {
   red: '#ff3333',
   /** Yellow — tool calls, info */
   yellow: '#cccc00',
+  /** Orange — user messages, highlights */
+  orange: '#ff8800',
   /** Cyan — user input echo */
   cyan: '#00cccc',
   /** White — emphasis */

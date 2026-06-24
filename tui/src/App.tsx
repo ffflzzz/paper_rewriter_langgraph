@@ -70,7 +70,7 @@ export function App() {
 
       if (text === '/quit') { exit(); return }
       if (text === '/help') {
-        setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: 'Commands:\n  /help    — Show this help\n  /new     — New session\n  /status  — Show status\n  /config  — Reconfigure model\n  /quit    — Exit', timestamp: Date.now() }])
+        setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: '/help    Show this help\n/new     New session\n/status  Show status\n/config  Reconfigure model\n/quit    Exit', timestamp: Date.now() }])
         setInputText('')
         return
       }
@@ -79,7 +79,7 @@ export function App() {
         return
       }
       if (text === '/status') {
-        setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `Session: ${sessionId}\nModel: ${config?.model || 'unknown'}\nMessages: ${messages.length}\nTurns: ${turnCount}`, timestamp: Date.now() }])
+        setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `model: ${config?.model || 'unknown'}\nsession: ${sessionId}\nmessages: ${messages.length}\nturns: ${turnCount}`, timestamp: Date.now() }])
         setInputText('')
         return
       }
@@ -183,7 +183,7 @@ export function App() {
 
       {/* Input */}
       <Box paddingX={1}>
-        <Text color={theme.green} bold>{'▸ '} </Text>
+        <Text color={theme.green} bold>{'▸ '}</Text>
         <Text color={theme.white}>{inputText}</Text>
         <Text color={theme.dimGreen}>{'▌'}</Text>
       </Box>

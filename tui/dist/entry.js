@@ -1370,7 +1370,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState5(initialState) {
+        function useState6(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1382,7 +1382,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect5(create2, deps) {
+        function useEffect6(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -2165,7 +2165,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect5;
+        exports.useEffect = useEffect6;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2173,7 +2173,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState5;
+        exports.useState = useState6;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -33802,8 +33802,6 @@ var use_app_default = useApp;
 
 // node_modules/ink/build/hooks/use-stdout.js
 var import_react18 = __toESM(require_react(), 1);
-var useStdout = () => (0, import_react18.useContext)(StdoutContext_default);
-var use_stdout_default = useStdout;
 
 // node_modules/ink/build/hooks/use-stderr.js
 var import_react19 = __toESM(require_react(), 1);
@@ -34057,8 +34055,21 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   streamingText,
   isStreaming
 }) {
-  const { stdout } = use_stdout_default();
-  const rows = stdout.rows || 24;
+  const [termRows, setTermRows] = (0, import_react22.useState)(() => process.stdout.rows || 24);
+  (0, import_react22.useEffect)(() => {
+    const update = () => {
+      try {
+        const { execSync } = __require("child_process");
+        const size = execSync('stty size 2>/dev/null || echo "24 80"', { encoding: "utf-8" }).trim();
+        const [r] = size.split(" ").map(Number);
+        if (r && r > 0) setTermRows(r);
+      } catch {
+      }
+    };
+    update();
+    const timer = setTimeout(update, 200);
+    return () => clearTimeout(timer);
+  }, []);
   const contentLines = [];
   for (const msg of messages) {
     if (msg.role === "tool" && msg.toolName) {
@@ -34091,7 +34102,7 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
     }
   }
   const reserved = 3;
-  const available = Math.max(5, rows - reserved);
+  const available = Math.max(5, termRows - reserved);
   const padLines = Math.max(0, available - contentLines.length);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
     Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),

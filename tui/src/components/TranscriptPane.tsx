@@ -1,5 +1,5 @@
-import React, { memo } from 'react'
-import { Box, Text, useStdout } from 'ink'
+import React, { memo, useState, useEffect } from 'react'
+import { Box, Text } from 'ink'
 import { theme } from '../lib/theme.js'
 import { wrapText } from '../lib/utils.js'
 
@@ -36,8 +36,23 @@ export const TranscriptPane = memo(function TranscriptPane({
   streamingText,
   isStreaming,
 }: Props) {
-  const { stdout } = useStdout()
-  const rows = stdout.rows || 24
+  const [termRows, setTermRows] = useState(() => process.stdout.rows || 24)
+
+  useEffect(() => {
+    // Try to get terminal size via SIGWINCH or exec
+    const update = () => {
+      try {
+        const { execSync } = require('child_process')
+        const size = execSync('stty size 2>/dev/null || echo "24 80"', { encoding: 'utf-8' }).trim()
+        const [r] = size.split(' ').map(Number)
+        if (r && r > 0) setTermRows(r)
+      } catch {}
+    }
+    update()
+    // Re-check after a short delay (terminal might not be ready on mount)
+    const timer = setTimeout(update, 200)
+    return () => clearTimeout(timer)
+  }, [])
 
   const contentLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []
 
@@ -75,7 +90,7 @@ export const TranscriptPane = memo(function TranscriptPane({
 
   // Reserve: input(1) + status bar(1) + separator(1) = 3
   const reserved = 3
-  const available = Math.max(5, rows - reserved)
+  const available = Math.max(5, termRows - reserved)
   const padLines = Math.max(0, available - contentLines.length)
 
   return (

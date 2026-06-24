@@ -33818,25 +33818,25 @@ var import_react27 = __toESM(require_react(), 1);
 // src/lib/theme.ts
 var theme = {
   /** Bright green — primary text, highlights, prompt */
-  green: "#00ff00",
+  green: "green",
   /** Dim green — secondary text, borders, separators */
   dimGreen: "#008800",
   /** Dark green — background accents */
   darkGreen: "#004400",
   /** Burgundy — fixed components (status bar, separators, headers) */
-  burgundy: "#cc3366",
+  burgundy: "magenta",
   /** Dim burgundy — secondary fixed elements */
   dimBurgundy: "#993355",
   /** Red — errors, warnings */
-  red: "#ff3333",
+  red: "red",
   /** Yellow — tool calls, info */
-  yellow: "#cccc00",
+  yellow: "yellow",
   /** Orange — user messages, highlights */
   orange: "#ff8800",
   /** Cyan — user input echo */
-  cyan: "#00cccc",
+  cyan: "cyan",
   /** White — emphasis */
-  white: "#ffffff",
+  white: "white",
   /** Dim white — secondary info */
   dimWhite: "#888888"
 };

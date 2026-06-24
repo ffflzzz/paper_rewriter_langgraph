@@ -34086,7 +34086,7 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
       contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
     }
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, paddingRight: 1, children: [
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexGrow: 1 }),
     contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
       line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),

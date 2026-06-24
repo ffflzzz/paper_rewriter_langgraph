@@ -71,7 +71,7 @@ export const TranscriptPane = memo(function TranscriptPane({
   }
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
+    <Box flexDirection="column" paddingLeft={1} paddingRight={1}>
       {/* Spacer pushes content to bottom */}
       <Box flexGrow={1} />
       {contentLines.map((line) => (

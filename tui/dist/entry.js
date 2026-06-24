@@ -1370,7 +1370,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState4(initialState) {
+        function useState6(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1382,7 +1382,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect3(create2, deps) {
+        function useEffect5(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -2165,7 +2165,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect3;
+        exports.useEffect = useEffect5;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2173,7 +2173,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState4;
+        exports.useState = useState6;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -7865,9 +7865,9 @@ var require_react_reconciler_development = __commonJS({
       module.exports = function $$$reconciler($$$hostConfig) {
         var exports2 = {};
         "use strict";
-        var React15 = require_react();
+        var React17 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React15.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React17.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -27299,7 +27299,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (process.env.NODE_ENV !== "production") {
       (function() {
         "use strict";
-        var React15 = require_react();
+        var React17 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -27325,7 +27325,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React15.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React17.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -28175,11 +28175,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx6 = jsxWithValidationDynamic;
-        var jsxs6 = jsxWithValidationStatic;
+        var jsx7 = jsxWithValidationDynamic;
+        var jsxs7 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx6;
-        exports.jsxs = jsxs6;
+        exports.jsx = jsx7;
+        exports.jsxs = jsxs7;
       })();
     }
   }
@@ -28198,7 +28198,7 @@ var require_jsx_runtime = __commonJS({
 });
 
 // src/entry.tsx
-var import_react26 = __toESM(require_react(), 1);
+var import_react28 = __toESM(require_react(), 1);
 
 // node_modules/ink/build/render.js
 import { Stream } from "node:stream";
@@ -33813,7 +33813,7 @@ var import_react20 = __toESM(require_react(), 1);
 var import_react21 = __toESM(require_react(), 1);
 
 // src/App.tsx
-var import_react25 = __toESM(require_react(), 1);
+var import_react27 = __toESM(require_react(), 1);
 
 // src/lib/theme.ts
 var theme = {
@@ -33912,6 +33912,60 @@ function runAgent(messages, threadId, runId, callbacks) {
   return () => controller.abort();
 }
 
+// src/lib/config.ts
+import { readFileSync as readFileSync2, writeFileSync, mkdirSync, existsSync as existsSync2 } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+var CONFIG_DIR = join(homedir(), ".rewriter");
+var CONFIG_FILE = join(CONFIG_DIR, "config.json");
+var PROVIDERS = {
+  "mimo": {
+    name: "MiMo (\u5C0F\u7C73)",
+    baseUrl: "https://token-plan-cn.xiaomimimo.com/v1",
+    models: ["mimo-v2.5-pro", "mimo-v2-flash"]
+  },
+  "openai": {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini"]
+  },
+  "anthropic": {
+    name: "Anthropic",
+    baseUrl: "https://api.anthropic.com/v1",
+    models: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"]
+  },
+  "openrouter": {
+    name: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    models: ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o", "google/gemini-2.0-flash"]
+  },
+  "deepseek": {
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/v1",
+    models: ["deepseek-chat", "deepseek-reasoner"]
+  },
+  "custom": {
+    name: "Custom (OpenAI\u517C\u5BB9)",
+    baseUrl: "",
+    models: []
+  }
+};
+function loadConfig() {
+  try {
+    if (!existsSync2(CONFIG_FILE)) return null;
+    const raw = readFileSync2(CONFIG_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+function saveConfig(config) {
+  if (!existsSync2(CONFIG_DIR)) {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
+}
+
 // src/components/TranscriptPane.tsx
 var import_react22 = __toESM(require_react(), 1);
 
@@ -33995,27 +34049,56 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
 });
 
 // src/components/StatusBar.tsx
+var import_react23 = __toESM(require_react(), 1);
 var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-function StatusBar({ status, toolCount, turnCount, sessionId }) {
+function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt }) {
+  const [elapsed, setElapsed] = (0, import_react23.useState)("0m");
+  (0, import_react23.useEffect)(() => {
+    const timer = setInterval(() => {
+      if (startedAt) {
+        const mins = Math.floor((Date.now() - startedAt) / 6e4);
+        const hrs = Math.floor(mins / 60);
+        const m = mins % 60;
+        setElapsed(hrs > 0 ? `${hrs}h ${m}m` : `${m}m`);
+      }
+    }, 1e4);
+    return () => clearInterval(timer);
+  }, [startedAt]);
   const statusIcon = status === "idle" ? "\u25C7" : status === "processing" ? "\u25CF" : status === "streaming" ? "\u25B8" : "\u2717";
-  const statusText = status === "idle" ? "ready" : status === "processing" ? "processing..." : status === "streaming" ? "streaming..." : "error";
-  const left = `${statusIcon} ${statusText}`;
-  const right = `tools:${toolCount} \u2502 turns:${turnCount} \u2502 ${sessionId}`;
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
-      "\u25B8",
-      " "
+  const statusColor = status === "error" ? theme.red : status === "idle" ? theme.dimGreen : theme.green;
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, justifyContent: "space-between", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, children: "\u25B8 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: statusColor, children: [
+        statusIcon,
+        " ",
+        status === "idle" ? "ready" : status === "processing" ? "processing..." : status === "streaming" ? "streaming..." : "error"
+      ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: status === "error" ? theme.red : theme.dimGreen, children: left }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " ".repeat(Math.max(1, (process.stdout.columns || 80) - left.length - right.length - 4)) }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: right })
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: model }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
+        "tools:",
+        toolCount
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimGreen, children: [
+        "turns:",
+        turnCount
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: elapsed }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: sessionId })
+    ] })
   ] });
 }
 
 // src/components/ToolCallCards.tsx
-var import_react23 = __toESM(require_react(), 1);
+var import_react24 = __toESM(require_react(), 1);
 var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-var ToolCallCards = (0, import_react23.memo)(function ToolCallCards2({ toolCalls }) {
+var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls }) {
   if (toolCalls.length === 0) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", marginTop: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
@@ -34035,9 +34118,9 @@ var ToolCallCards = (0, import_react23.memo)(function ToolCallCards2({ toolCalls
 });
 
 // src/components/HitlPrompt.tsx
-var import_react24 = __toESM(require_react(), 1);
+var import_react25 = __toESM(require_react(), 1);
 var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-var HitlPrompt = (0, import_react24.memo)(function HitlPrompt2({ prompt, onAnswer }) {
+var HitlPrompt = (0, import_react25.memo)(function HitlPrompt2({ prompt, onAnswer }) {
   use_input_default((input, key) => {
     if (key.return || input === "y") {
       onAnswer("y");
@@ -34072,22 +34155,154 @@ var HitlPrompt = (0, import_react24.memo)(function HitlPrompt2({ prompt, onAnswe
   );
 });
 
-// src/App.tsx
+// src/components/SetupWizard.tsx
+var import_react26 = __toESM(require_react(), 1);
 var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+function SetupWizard({ onComplete }) {
+  const [step, setStep] = (0, import_react26.useState)("provider");
+  const [providerIdx, setProviderIdx] = (0, import_react26.useState)(0);
+  const [apiKey, setApiKey] = (0, import_react26.useState)("");
+  const [modelIdx, setModelIdx] = (0, import_react26.useState)(0);
+  const [baseUrl, setBaseUrl] = (0, import_react26.useState)("");
+  const [customUrl, setCustomUrl] = (0, import_react26.useState)("");
+  const providerKeys = Object.keys(PROVIDERS);
+  const currentProvider = PROVIDERS[providerKeys[providerIdx]];
+  const models = currentProvider.models;
+  use_input_default((input, key) => {
+    if (step === "provider") {
+      if (key.upArrow) setProviderIdx((i) => Math.max(0, i - 1));
+      if (key.downArrow) setProviderIdx((i) => Math.min(providerKeys.length - 1, i + 1));
+      if (key.return) {
+        if (providerKeys[providerIdx] === "custom") {
+          setStep("apikey");
+          setBaseUrl("");
+        } else {
+          setBaseUrl(currentProvider.baseUrl);
+          setStep("apikey");
+        }
+      }
+      return;
+    }
+    if (step === "apikey") {
+      if (key.return) {
+        if (apiKey.length > 0) {
+          if (providerKeys[providerIdx] === "custom") {
+            setStep("model");
+          } else if (models.length === 1) {
+            const config = {
+              provider: providerKeys[providerIdx],
+              baseUrl,
+              apiKey,
+              model: models[0]
+            };
+            saveConfig(config);
+            onComplete(config);
+          } else {
+            setStep("model");
+          }
+        }
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setApiKey((prev) => prev.slice(0, -1));
+        return;
+      }
+      if (input && !key.ctrl && !key.meta) {
+        setApiKey((prev) => prev + input);
+      }
+      return;
+    }
+    if (step === "model") {
+      if (key.upArrow) setModelIdx((i) => Math.max(0, i - 1));
+      if (key.downArrow) setModelIdx((i) => Math.min(models.length - 1, i + 1));
+      if (key.return) {
+        const config = {
+          provider: providerKeys[providerIdx],
+          baseUrl,
+          apiKey,
+          model: models[modelIdx]
+        };
+        saveConfig(config);
+        onComplete(config);
+      }
+      return;
+    }
+  });
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", padding: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, bold: true, children: "\u{1F4DD} Paper Rewriter \u2014 Setup" }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2550".repeat(50) }) }),
+    step === "provider" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Select model provider:" }) }),
+      providerKeys.map((key, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 2, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: idx === providerIdx ? theme.green : theme.dimGreen, children: [
+        idx === providerIdx ? "\u25B8 " : "  ",
+        PROVIDERS[key].name,
+        key === "mimo" ? " (default)" : ""
+      ] }) }, key)),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2191\u2193 to select, Enter to confirm" }) })
+    ] }),
+    step === "apikey" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: theme.green, children: [
+        "Provider: ",
+        currentProvider.name
+      ] }) }),
+      providerKeys[providerIdx] === "custom" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { marginBottom: 1, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Base URL: " }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: customUrl || "..." })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { marginBottom: 1, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Enter API key: " }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: apiKey.replace(/./g, "\u2022") }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "Type your API key, then press Enter" }) })
+    ] }),
+    step === "model" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Select model:" }) }),
+      models.map((model, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 2, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: idx === modelIdx ? theme.green : theme.dimGreen, children: [
+        idx === modelIdx ? "\u25B8 " : "  ",
+        model
+      ] }) }, model)),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2191\u2193 to select, Enter to confirm" }) })
+    ] })
+  ] });
+}
+
+// src/App.tsx
+var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
 function App2() {
   const { exit } = use_app_default();
-  const [messages, setMessages] = (0, import_react25.useState)([]);
-  const [inputText, setInputText] = (0, import_react25.useState)("");
-  const [isStreaming, setIsStreaming] = (0, import_react25.useState)(false);
-  const [streamingText, setStreamingText] = (0, import_react25.useState)("");
-  const [status, setStatus] = (0, import_react25.useState)("idle");
-  const [sessionId] = (0, import_react25.useState)(() => `local-${Date.now() % 1e5}`);
-  const [toolCalls, setToolCalls] = (0, import_react25.useState)([]);
-  const [hitlPrompt, setHitlPrompt] = (0, import_react25.useState)(null);
-  const [hitlCallback, setHitlCallback] = (0, import_react25.useState)(null);
-  const [turnCount, setTurnCount] = (0, import_react25.useState)(0);
-  const [abortFn, setAbortFn] = (0, import_react25.useState)(null);
+  const [config, setConfig] = (0, import_react27.useState)(() => loadConfig());
+  const [showSetup, setShowSetup] = (0, import_react27.useState)(!config);
+  const [messages, setMessages] = (0, import_react27.useState)([]);
+  const [inputText, setInputText] = (0, import_react27.useState)("");
+  const [isStreaming, setIsStreaming] = (0, import_react27.useState)(false);
+  const [streamingText, setStreamingText] = (0, import_react27.useState)("");
+  const [status, setStatus] = (0, import_react27.useState)("idle");
+  const [sessionId] = (0, import_react27.useState)(() => `local-${Date.now() % 1e5}`);
+  const [toolCalls, setToolCalls] = (0, import_react27.useState)([]);
+  const [hitlPrompt, setHitlPrompt] = (0, import_react27.useState)(null);
+  const [hitlCallback, setHitlCallback] = (0, import_react27.useState)(null);
+  const [turnCount, setTurnCount] = (0, import_react27.useState)(0);
+  const [abortFn, setAbortFn] = (0, import_react27.useState)(null);
+  const [startedAt] = (0, import_react27.useState)(() => Date.now());
+  (0, import_react27.useEffect)(() => {
+    if (config && !showSetup) {
+      setMessages([{
+        id: "welcome",
+        role: "assistant",
+        content: `Paper Rewriter \xB7 ${config.model}
+
+Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
+        timestamp: Date.now()
+      }]);
+    }
+  }, [config, showSetup]);
+  const handleSetupComplete = (0, import_react27.useCallback)((newConfig) => {
+    setConfig(newConfig);
+    setShowSetup(false);
+  }, []);
   use_input_default((input, key) => {
+    if (showSetup) return;
     if (hitlPrompt) return;
     if (key.return) {
       if (inputText.trim()) {
@@ -34096,7 +34311,7 @@ function App2() {
           return;
         }
         if (inputText.trim() === "/help") {
-          setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands: /help \xB7 /new \xB7 /status \xB7 /quit", timestamp: Date.now() }]);
+          setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show status\n  /config  \u2014 Reconfigure model\n  /quit    \u2014 Exit", timestamp: Date.now() }]);
           setInputText("");
           return;
         }
@@ -34109,8 +34324,14 @@ function App2() {
         }
         if (inputText.trim() === "/status") {
           setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `Session: ${sessionId}
+Model: ${config?.model || "unknown"}
 Messages: ${messages.length}
 Turns: ${turnCount}`, timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        if (inputText.trim() === "/config") {
+          setShowSetup(true);
           setInputText("");
           return;
         }
@@ -34131,7 +34352,7 @@ Turns: ${turnCount}`, timestamp: Date.now() }]);
       setInputText((prev) => prev + input);
     }
   });
-  const sendMessage = (0, import_react25.useCallback)((text) => {
+  const sendMessage = (0, import_react27.useCallback)((text) => {
     const userMsg = { id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
     setTurnCount((prev) => prev + 1);
@@ -34180,21 +34401,34 @@ Turns: ${turnCount}`, timestamp: Date.now() }]);
       }
     );
     setAbortFn(() => abort);
-  }, [sessionId]);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
-    toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ToolCallCards, { toolCalls }),
-    hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { paddingX: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: theme.green, bold: true, children: [
+  }, [sessionId, config]);
+  if (showSetup) {
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SetupWizard, { onComplete: handleSetupComplete });
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
+    toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
+    hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(process.stdout.columns || 80) }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingX: 1, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.green, bold: true, children: [
         "\u25B8 ",
         " "
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: inputText }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(StatusBar, { status, toolCount: toolCalls.length, turnCount, sessionId })
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      StatusBar,
+      {
+        status,
+        toolCount: toolCalls.length,
+        turnCount,
+        sessionId,
+        model: config?.model || "unknown",
+        startedAt
+      }
+    )
   ] });
 }
 
@@ -34205,7 +34439,7 @@ if (!process.stdin.isTTY) {
   process.exit(1);
 }
 process.stdout.write("\x1B[2J\x1B[H\x1B[3J");
-var { waitUntilExit } = render_default(import_react26.default.createElement(App2), {
+var { waitUntilExit } = render_default(import_react28.default.createElement(App2), {
   exitOnCtrlC: false
 });
 waitUntilExit().then(() => {

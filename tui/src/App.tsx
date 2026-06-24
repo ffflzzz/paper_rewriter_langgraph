@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Box, Text, useInput, useApp } from 'ink'
 import { theme } from './lib/theme.js'
 import { runAgent } from './lib/agui-client.js'
+import { loadConfig, type RewriterConfig } from './lib/config.js'
 import type { AgUiEvent, ToolCallInfo, HitlPromptData } from './lib/types.js'
 import { TranscriptPane } from './components/TranscriptPane.js'
 import { StatusBar } from './components/StatusBar.js'
 import { ToolCallCards } from './components/ToolCallCards.js'
 import { HitlPrompt } from './components/HitlPrompt.js'
+import { SetupWizard } from './components/SetupWizard.js'
 
 interface Message {
   id: string
@@ -18,6 +20,8 @@ interface Message {
 
 export function App() {
   const { exit } = useApp()
+  const [config, setConfig] = useState<RewriterConfig | null>(() => loadConfig())
+  const [showSetup, setShowSetup] = useState(!config)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -29,15 +33,34 @@ export function App() {
   const [hitlCallback, setHitlCallback] = useState<((answer: string) => void) | null>(null)
   const [turnCount, setTurnCount] = useState(0)
   const [abortFn, setAbortFn] = useState<(() => void) | null>(null)
+  const [startedAt] = useState(() => Date.now())
+
+  // Show welcome message after setup
+  useEffect(() => {
+    if (config && !showSetup) {
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: `Paper Rewriter · ${config.model}\n\nType a message to chat. Commands: /help · /new · /status · /quit`,
+        timestamp: Date.now(),
+      }])
+    }
+  }, [config, showSetup])
+
+  const handleSetupComplete = useCallback((newConfig: RewriterConfig) => {
+    setConfig(newConfig)
+    setShowSetup(false)
+  }, [])
 
   useInput((input, key) => {
+    if (showSetup) return
     if (hitlPrompt) return
 
     if (key.return) {
       if (inputText.trim()) {
         if (inputText.trim() === '/quit') { exit(); return }
         if (inputText.trim() === '/help') {
-          setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: 'Commands: /help · /new · /status · /quit', timestamp: Date.now() }])
+          setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: 'Commands:\n  /help    — Show this help\n  /new     — New session\n  /status  — Show status\n  /config  — Reconfigure model\n  /quit    — Exit', timestamp: Date.now() }])
           setInputText('')
           return
         }
@@ -46,7 +69,12 @@ export function App() {
           return
         }
         if (inputText.trim() === '/status') {
-          setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `Session: ${sessionId}\nMessages: ${messages.length}\nTurns: ${turnCount}`, timestamp: Date.now() }])
+          setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `Session: ${sessionId}\nModel: ${config?.model || 'unknown'}\nMessages: ${messages.length}\nTurns: ${turnCount}`, timestamp: Date.now() }])
+          setInputText('')
+          return
+        }
+        if (inputText.trim() === '/config') {
+          setShowSetup(true)
           setInputText('')
           return
         }
@@ -121,11 +149,16 @@ export function App() {
       },
     )
     setAbortFn(() => abort)
-  }, [sessionId])
+  }, [sessionId, config])
+
+  // Setup wizard
+  if (showSetup) {
+    return <SetupWizard onComplete={handleSetupComplete} />
+  }
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      {/* Transcript — fills most of the screen */}
+      {/* Transcript */}
       <TranscriptPane messages={messages} streamingText={streamingText} isStreaming={isStreaming} />
 
       {/* Tool call cards */}
@@ -147,7 +180,14 @@ export function App() {
       </Box>
 
       {/* Status bar */}
-      <StatusBar status={status} toolCount={toolCalls.length} turnCount={turnCount} sessionId={sessionId} />
+      <StatusBar
+        status={status}
+        toolCount={toolCalls.length}
+        turnCount={turnCount}
+        sessionId={sessionId}
+        model={config?.model || 'unknown'}
+        startedAt={startedAt}
+      />
     </Box>
   )
 }

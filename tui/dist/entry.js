@@ -34112,22 +34112,13 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
 var import_react23 = __toESM(require_react(), 1);
 var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 var SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
-function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt }) {
-  const [elapsed, setElapsed] = (0, import_react23.useState)("0m");
+function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt, tokenCount = 0, maxTokens = 128e3 }) {
+  const [tick, setTick] = (0, import_react23.useState)(0);
   const [spinnerIdx, setSpinnerIdx] = (0, import_react23.useState)(0);
   (0, import_react23.useEffect)(() => {
-    const update = () => {
-      if (startedAt) {
-        const mins = Math.floor((Date.now() - startedAt) / 6e4);
-        const hrs = Math.floor(mins / 60);
-        const m = mins % 60;
-        setElapsed(hrs > 0 ? `${hrs}h ${m}m` : `${m}m`);
-      }
-    };
-    update();
-    const timer = setInterval(update, 1e4);
+    const timer = setInterval(() => setTick((t) => t + 1), 1e4);
     return () => clearInterval(timer);
-  }, [startedAt]);
+  }, []);
   (0, import_react23.useEffect)(() => {
     if (status !== "streaming") return;
     const timer = setInterval(() => {
@@ -34135,6 +34126,13 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
     }, 80);
     return () => clearInterval(timer);
   }, [status]);
+  const elapsed = startedAt ? (() => {
+    const mins = Math.floor((Date.now() - startedAt) / 6e4);
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return hrs > 0 ? `${hrs}h ${m}m` : `${m}m`;
+  })() : "0m";
+  const ctxPct = maxTokens > 0 ? Math.round(tokenCount / maxTokens * 100) : 0;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.burgundy, children: "\u2695 " }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: model }),
@@ -34152,7 +34150,15 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
       toolCount
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: elapsed })
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: elapsed }),
+    tokenCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimBurgundy, children: [
+        "ctx ",
+        ctxPct,
+        "%"
+      ] })
+    ] })
   ] });
 }
 

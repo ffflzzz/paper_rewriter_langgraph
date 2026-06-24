@@ -11,26 +11,21 @@ interface Props {
   sessionId: string
   model?: string
   startedAt?: number
+  tokenCount?: number
+  maxTokens?: number
 }
 
-export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mimo-v2.5-pro', startedAt }: Props) {
-  const [elapsed, setElapsed] = useState('0m')
+export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mimo-v2.5-pro', startedAt, tokenCount = 0, maxTokens = 128000 }: Props) {
+  const [tick, setTick] = useState(0)
   const [spinnerIdx, setSpinnerIdx] = useState(0)
 
+  // Force re-render every 10s to update elapsed time
   useEffect(() => {
-    const update = () => {
-      if (startedAt) {
-        const mins = Math.floor((Date.now() - startedAt) / 60000)
-        const hrs = Math.floor(mins / 60)
-        const m = mins % 60
-        setElapsed(hrs > 0 ? `${hrs}h ${m}m` : `${m}m`)
-      }
-    }
-    update()
-    const timer = setInterval(update, 10000)
+    const timer = setInterval(() => setTick(t => t + 1), 10000)
     return () => clearInterval(timer)
-  }, [startedAt])
+  }, [])
 
+  // Spinner animation during streaming
   useEffect(() => {
     if (status !== 'streaming') return
     const timer = setInterval(() => {
@@ -39,7 +34,17 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
     return () => clearInterval(timer)
   }, [status])
 
-  // Hermes format: ⚕ model · status · ⚙ tools · duration
+  // Calculate elapsed time
+  const elapsed = startedAt ? (() => {
+    const mins = Math.floor((Date.now() - startedAt) / 60000)
+    const hrs = Math.floor(mins / 60)
+    const m = mins % 60
+    return hrs > 0 ? `${hrs}h ${m}m` : `${m}m`
+  })() : '0m'
+
+  // Context window usage percentage
+  const ctxPct = maxTokens > 0 ? Math.round((tokenCount / maxTokens) * 100) : 0
+
   return (
     <Box paddingX={1}>
       <Text color={theme.burgundy}>⚕ </Text>
@@ -55,6 +60,12 @@ export function StatusBar({ status, toolCount, turnCount, sessionId, model = 'mi
       <Text color={theme.dimBurgundy}>⚙ {toolCount}</Text>
       <Text color={theme.dimBurgundy}> · </Text>
       <Text color={theme.dimBurgundy}>{elapsed}</Text>
+      {tokenCount > 0 && (
+        <>
+          <Text color={theme.dimBurgundy}> · </Text>
+          <Text color={theme.dimBurgundy}>ctx {ctxPct}%</Text>
+        </>
+      )}
     </Box>
   )
 }

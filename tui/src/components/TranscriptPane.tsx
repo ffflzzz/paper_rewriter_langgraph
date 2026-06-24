@@ -31,27 +31,44 @@ function messageColor(role: string): string {
   return theme.dimGreen
 }
 
+function getTerminalRows(): number {
+  // Try multiple methods to get terminal height
+  try {
+    // Method 1: process.stdout.rows (works in TTY)
+    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows
+  } catch {}
+  try {
+    // Method 2: environment variable (set by some terminals)
+    const lines = parseInt(process.env.LINES || '0', 10)
+    if (lines > 0) return lines
+  } catch {}
+  try {
+    // Method 3: tput lines (works in most terminals)
+    const { execSync } = require('child_process')
+    const result = execSync('tput lines 2>/dev/null || echo 0', { encoding: 'utf-8' }).trim()
+    const r = parseInt(result, 10)
+    if (r > 0) return r
+  } catch {}
+  return 24 // fallback
+}
+
 export const TranscriptPane = memo(function TranscriptPane({
   messages,
   streamingText,
   isStreaming,
 }: Props) {
-  const [termRows, setTermRows] = useState(() => process.stdout.rows || 24)
+  const [termRows, setTermRows] = useState(getTerminalRows)
 
   useEffect(() => {
-    // Try to get terminal size via SIGWINCH or exec
-    const update = () => {
-      try {
-        const { execSync } = require('child_process')
-        const size = execSync('stty size 2>/dev/null || echo "24 80"', { encoding: 'utf-8' }).trim()
-        const [r] = size.split(' ').map(Number)
-        if (r && r > 0) setTermRows(r)
-      } catch {}
+    const update = () => setTermRows(getTerminalRows())
+    // Listen for terminal resize
+    process.stdout.on('resize', update)
+    // Also re-check after mount
+    const timer = setTimeout(update, 300)
+    return () => {
+      process.stdout.off('resize', update)
+      clearTimeout(timer)
     }
-    update()
-    // Re-check after a short delay (terminal might not be ready on mount)
-    const timer = setTimeout(update, 200)
-    return () => clearTimeout(timer)
   }, [])
 
   const contentLines: Array<{ key: string; prefix: string; text: string; color: string; prefixColor?: string }> = []

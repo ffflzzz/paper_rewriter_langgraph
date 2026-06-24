@@ -34050,25 +34050,39 @@ function messageColor(role) {
   if (role === "tool") return theme.yellow;
   return theme.dimGreen;
 }
+function getTerminalRows() {
+  try {
+    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows;
+  } catch {
+  }
+  try {
+    const lines = parseInt(process.env.LINES || "0", 10);
+    if (lines > 0) return lines;
+  } catch {
+  }
+  try {
+    const { execSync } = __require("child_process");
+    const result = execSync("tput lines 2>/dev/null || echo 0", { encoding: "utf-8" }).trim();
+    const r = parseInt(result, 10);
+    if (r > 0) return r;
+  } catch {
+  }
+  return 24;
+}
 var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   messages,
   streamingText,
   isStreaming
 }) {
-  const [termRows, setTermRows] = (0, import_react22.useState)(() => process.stdout.rows || 24);
+  const [termRows, setTermRows] = (0, import_react22.useState)(getTerminalRows);
   (0, import_react22.useEffect)(() => {
-    const update = () => {
-      try {
-        const { execSync } = __require("child_process");
-        const size = execSync('stty size 2>/dev/null || echo "24 80"', { encoding: "utf-8" }).trim();
-        const [r] = size.split(" ").map(Number);
-        if (r && r > 0) setTermRows(r);
-      } catch {
-      }
+    const update = () => setTermRows(getTerminalRows());
+    process.stdout.on("resize", update);
+    const timer = setTimeout(update, 300);
+    return () => {
+      process.stdout.off("resize", update);
+      clearTimeout(timer);
     };
-    update();
-    const timer = setTimeout(update, 200);
-    return () => clearTimeout(timer);
   }, []);
   const contentLines = [];
   for (const msg of messages) {

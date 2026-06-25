@@ -35,6 +35,8 @@ export function App() {
   const [abortFn, setAbortFn] = useState<(() => void) | null>(null)
   const [startedAt] = useState(() => Date.now())
   const [inputReady, setInputReady] = useState(false)
+  const [history, setHistory] = useState<string[]>([])
+  const [historyIdx, setHistoryIdx] = useState(-1)
 
   // Delay input capture to avoid capturing the launch command
   useEffect(() => {
@@ -64,9 +66,36 @@ export function App() {
     if (showSetup) return
     if (hitlPrompt) return
 
+    // Up arrow — history previous
+    if (key.upArrow) {
+      if (history.length === 0) return
+      const newIdx = historyIdx < 0 ? history.length - 1 : Math.max(0, historyIdx - 1)
+      setHistoryIdx(newIdx)
+      setInputText(history[newIdx])
+      return
+    }
+
+    // Down arrow — history next
+    if (key.downArrow) {
+      if (historyIdx < 0) return
+      const newIdx = historyIdx + 1
+      if (newIdx >= history.length) {
+        setHistoryIdx(-1)
+        setInputText('')
+      } else {
+        setHistoryIdx(newIdx)
+        setInputText(history[newIdx])
+      }
+      return
+    }
+
     if (key.return) {
       const text = inputText.trim()
       if (!text) return
+
+      // Save to history
+      setHistory(prev => [...prev, text])
+      setHistoryIdx(-1)
 
       if (text === '/quit') { exit(); return }
       if (text === '/help') {

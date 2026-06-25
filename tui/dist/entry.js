@@ -34381,6 +34381,8 @@ function App2() {
   const [abortFn, setAbortFn] = (0, import_react27.useState)(null);
   const [startedAt] = (0, import_react27.useState)(() => Date.now());
   const [inputReady, setInputReady] = (0, import_react27.useState)(false);
+  const [history, setHistory] = (0, import_react27.useState)([]);
+  const [historyIdx, setHistoryIdx] = (0, import_react27.useState)(-1);
   (0, import_react27.useEffect)(() => {
     const timer = setTimeout(() => setInputReady(true), 500);
     return () => clearTimeout(timer);
@@ -34405,9 +34407,30 @@ Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
     if (!inputReady) return;
     if (showSetup) return;
     if (hitlPrompt) return;
+    if (key.upArrow) {
+      if (history.length === 0) return;
+      const newIdx = historyIdx < 0 ? history.length - 1 : Math.max(0, historyIdx - 1);
+      setHistoryIdx(newIdx);
+      setInputText(history[newIdx]);
+      return;
+    }
+    if (key.downArrow) {
+      if (historyIdx < 0) return;
+      const newIdx = historyIdx + 1;
+      if (newIdx >= history.length) {
+        setHistoryIdx(-1);
+        setInputText("");
+      } else {
+        setHistoryIdx(newIdx);
+        setInputText(history[newIdx]);
+      }
+      return;
+    }
     if (key.return) {
       const text = inputText.trim();
       if (!text) return;
+      setHistory((prev) => [...prev, text]);
+      setHistoryIdx(-1);
       if (text === "/quit") {
         exit();
         return;

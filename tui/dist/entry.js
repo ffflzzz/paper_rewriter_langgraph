@@ -34165,14 +34165,54 @@ function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5
 // src/components/ToolCallCards.tsx
 var import_react24 = __toESM(require_react(), 1);
 var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+var TOOL_NAMES = {
+  "search_paper": "\u641C\u7D22\u8BBA\u6587",
+  "download_paper": "\u4E0B\u8F7D\u8BBA\u6587",
+  "read_original_segment": "\u8BFB\u53D6\u539F\u6587",
+  "write_chapter": "\u5199\u7AE0\u8282",
+  "read_chapter": "\u8BFB\u53D6\u7AE0\u8282",
+  "list_chapters": "\u5217\u51FA\u7AE0\u8282",
+  "self_review_chapter": "\u81EA\u5BA1\u7AE0\u8282",
+  "save_outline": "\u4FDD\u5B58\u5927\u7EB2",
+  "generate_pdf": "\u751F\u6210PDF",
+  "search_original": "\u641C\u7D22\u539F\u6587"
+};
+function formatArgs(args) {
+  try {
+    const parsed = JSON.parse(args);
+    const parts = [];
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "string" && v.length > 60) {
+        parts.push(`${k}="${v.slice(0, 60)}\u2026"`);
+      } else {
+        parts.push(`${k}=${JSON.stringify(v)}`);
+      }
+    }
+    return parts.join(", ");
+  } catch {
+    return args.length > 80 ? args.slice(0, 80) + "\u2026" : args;
+  }
+}
 var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls }) {
   if (toolCalls.length === 0) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name })
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.yellow, children: [
+        tc.status === "running" ? "\u23F3" : "\u2705",
+        " ",
+        TOOL_NAMES[tc.name] || tc.name
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+        " (",
+        tc.name,
+        ")"
+      ] })
     ] }),
-    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result }) })
+    tc.args && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+      "\u25B8 ",
+      formatArgs(tc.args)
+    ] }) }),
+    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.green, children: tc.result.length > 200 ? tc.result.slice(0, 200) + "\u2026" : tc.result }) })
   ] }, tc.id)) });
 });
 
@@ -34437,7 +34477,7 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
               setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running" }]);
               break;
             case "TOOL_CALL_END":
-              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done" } : tc));
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done", result: String(e.content || e.result || "") } : tc));
               break;
             case "STEP_STARTED":
               setStatus("processing");

@@ -33,12 +33,13 @@ function messageColor(role: string): string {
 
 function getRows(): number {
   try {
-    const { execSync } = require('child_process')
-    const r = parseInt(execSync('tput lines 2>/dev/null || echo 24', { encoding: 'utf-8' }).trim(), 10)
-    return r > 0 ? r : 24
-  } catch {
-    return 24
-  }
+    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows
+  } catch {}
+  try {
+    const lines = parseInt(process.env.LINES || '0', 10)
+    if (lines > 0) return lines
+  } catch {}
+  return 24
 }
 
 export const TranscriptPane = memo(function TranscriptPane({
@@ -80,17 +81,25 @@ export const TranscriptPane = memo(function TranscriptPane({
     }
   }
 
+  // Terminal height - reserved lines (input box + status bar)
   const rows = getRows()
-  const reserved = 3
-  const available = Math.max(5, rows - reserved)
-  const padLines = Math.max(0, available - contentLines.length)
+  const reserved = 5 // input box (3 lines) + status bar (1) + separator (1)
+  const maxVisibleLines = Math.max(5, rows - reserved)
+
+  // Only show last N lines (newest at bottom)
+  const visibleLines = contentLines.slice(-maxVisibleLines)
+
+  // Empty lines to push content to bottom
+  const padLines = Math.max(0, maxVisibleLines - visibleLines.length)
 
   return (
     <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
+      {/* Empty lines at top to push content to bottom */}
       {Array.from({ length: padLines }, (_, i) => (
         <Box key={`pad-${i}`}><Text> </Text></Box>
       ))}
-      {contentLines.map((line) => (
+      {/* Content at bottom */}
+      {visibleLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>}
           <Text color={line.color}>{line.text}</Text>

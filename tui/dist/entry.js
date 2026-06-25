@@ -34052,12 +34052,15 @@ function messageColor(role) {
 }
 function getRows() {
   try {
-    const { execSync } = __require("child_process");
-    const r = parseInt(execSync("tput lines 2>/dev/null || echo 24", { encoding: "utf-8" }).trim(), 10);
-    return r > 0 ? r : 24;
+    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows;
   } catch {
-    return 24;
   }
+  try {
+    const lines = parseInt(process.env.LINES || "0", 10);
+    if (lines > 0) return lines;
+  } catch {
+  }
+  return 24;
 }
 var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   messages,
@@ -34096,12 +34099,13 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
     }
   }
   const rows = getRows();
-  const reserved = 3;
-  const available = Math.max(5, rows - reserved);
-  const padLines = Math.max(0, available - contentLines.length);
+  const reserved = 5;
+  const maxVisibleLines = Math.max(5, rows - reserved);
+  const visibleLines = contentLines.slice(-maxVisibleLines);
+  const padLines = Math.max(0, maxVisibleLines - visibleLines.length);
   return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
     Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),
-    contentLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
       line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
     ] }, line.key))

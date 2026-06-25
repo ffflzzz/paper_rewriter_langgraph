@@ -167,3 +167,10 @@
 {"timestamp": 1782371802.345212, "model": "mimo-v2.5-pro", "input_tokens": 4285, "output_tokens": 220, "total_tokens": 4505, "cost": 0.004725000000000001, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
 {"timestamp": 1782371834.1426218, "model": "mimo-v2.5-pro", "input_tokens": 5622, "output_tokens": 248, "total_tokens": 5870, "cost": 0.006118, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
 {"timestamp": 1782374299.8868484, "model": "mimo-v2.5-pro", "input_tokens": 1721, "output_tokens": 323, "total_tokens": 2044, "cost": 0.002367, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782377576.9141345, "model": "mimo-v2.5-pro", "input_tokens": 1720, "output_tokens": 91, "total_tokens": 1811, "cost": 0.0019019999999999998, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378524.0519397, "model": "mimo-v2.5-pro", "input_tokens": 1720, "output_tokens": 169, "total_tokens": 1889, "cost": 0.002058, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378562.9284384, "model": "mimo-v2.5-pro", "input_tokens": 1739, "output_tokens": 179, "total_tokens": 1918, "cost": 0.002097, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378575.9855702, "model": "mimo-v2.5-pro", "input_tokens": 2971, "output_tokens": 254, "total_tokens": 3225, "cost": 0.003479, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378729.820909, "model": "mimo-v2.5-pro", "input_tokens": 1734, "output_tokens": 146, "total_tokens": 1880, "cost": 0.0020259999999999996, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378746.6981373, "model": "mimo-v2.5-pro", "input_tokens": 2631, "output_tokens": 192, "total_tokens": 2823, "cost": 0.0030150000000000003, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}
+{"timestamp": 1782378780.968894, "model": "mimo-v2.5-pro", "input_tokens": 1720, "output_tokens": 35, "total_tokens": 1755, "cost": 0.0017900000000000001, "run_id": "", "node": "agent", "prompt_version": "a8dd621a5558"}

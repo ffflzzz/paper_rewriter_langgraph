@@ -43,11 +43,16 @@ if ! curl -s --connect-timeout 3 "$AGUI_URL/api/status" >/dev/null 2>&1; then
     fi
 fi
 
-# Start gateway in background
-echo "Starting AG-UI → Hermes gateway on port $GATEWAY_PORT..."
-python3 "$GATEWAY" --port "$GATEWAY_PORT" --url "$AGUI_URL" &
-GATEWAY_PID=$!
-sleep 2
+# Check if gateway is already running on the port
+if ss -tlnp 2>/dev/null | grep -q ":${GATEWAY_PORT} " || netstat -tlnp 2>/dev/null | grep -q ":${GATEWAY_PORT} "; then
+    echo "Gateway already running on port $GATEWAY_PORT"
+else
+    # Start gateway in background
+    echo "Starting AG-UI → Hermes gateway on port $GATEWAY_PORT..."
+    python3 "$GATEWAY" --port "$GATEWAY_PORT" --url "$AGUI_URL" &
+    GATEWAY_PID=$!
+    sleep 2
+fi
 
 # Launch Hermes TUI connected to our gateway
 export HERMES_TUI_GATEWAY_URL="ws://localhost:$GATEWAY_PORT"

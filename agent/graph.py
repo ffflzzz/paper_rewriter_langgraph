@@ -648,6 +648,212 @@ def build_agent_graph(checkpointer=None):
 
 
 # ─────────────────────────────────────────────
+# 独立审查节点 (改进1: 同模型独立session)
+# ─────────────────────────────────────────────
+REVIEW_SYSTEM_PROMPT = """你是严格的学术审稿人。你的任务是审查论文章节的质量。
+
+审查标准：
+1. 内容准确性：是否忠实于原文？
+2. 通俗性：非理工科大一学生能否理解？
+3. 结构性：章节结构是否清晰？
+4. 完整性：是否覆盖了原文要点？
+5. 字数：是否达到3000字以上？
+
+输出格式：
+评分：X/10
+通过：是/否
+问题：（列出具体问题）
+建议：（改进建议）"""
+
+def review_node(state: MessagesState):
+    """独立审查节点：用同模型独立session审查章节质量。"""
+    from .event_log import log_event
+    
+    log_event("STEP_STARTED", {"stepName": "review"})
+    
+    messages = state["messages"]
+    
+    # 找到最近写入的章节内容
+    chapter_content = ""
+    for msg in reversed(messages):
+        if isinstance(msg, ToolMessage) and msg.name == "write_chapter":
+            chapter_content = msg.content
+            break
+    
+    if not chapter_content:
+        log_event("STEP_FINISHED", {"stepName": "review"})
+        return {"messages": [AIMessage(content="没有找到需要审查的章节。")]}
+    
+    # 创建独立的审查LLM (同模型，但不同temperature)
+    from langchain_openai import ChatOpenAI
+    review_llm = ChatOpenAI(
+        base_url="https://token-plan-cn.xiaomimimo.com/v1",
+        api_key=MIMO_API_KEY,
+        model="mimo-v2.5-pro",
+        temperature=0.3,  # 更严格的temperature
+    )
+    
+    # 独立session: 新的对话历史
+    review_messages = [
+        SystemMessage(content=REVIEW_SYSTEM_PROMPT),
+        HumanMessage(content=f"请审查以下章节：\n\n{chapter_content[:3000]}")
+    ]
+    
+    response = review_llm.invoke(review_messages)
+    review_result = response.content
+    
+    log_event("TOOL_CALL_START", {"name": "review", "args": ""})
+    log_event("TOOL_CALL_END", {"name": "review", "result": review_result[:200]})
+    log_event("STEP_FINISHED", {"stepName": "review"})
+    
+    # 解析审查结果
+    passed = "通过：是" in review_result or "评分：8" in review_result or "评分：9" in review_result or "评分：10" in review_result
+    
+    if passed:
+        return {"messages": [AIMessage(content=f"✅ 审查通过。\n\n{review_result}")]}
+    else:
+        return {"messages": [AIMessage(content=f"⚠️ 审查未通过，需要重写。\n\n{review_result}")]}
+
+
+# ─────────────────────────────────────────────
+# 质量阈值检查 (改进2)
+# ─────────────────────────────────────────────
+def quality_check(state: MessagesState) -> Literal["pass", "fail"]:
+    """检查审查结果是否通过质量阈值。"""
+    messages = state["messages"]
+    last_message = messages[-1]
+    
+    if isinstance(last_message, AIMessage):
+        content = last_message.content
+        # 检查是否通过
+        if "✅ 审查通过" in content:
+            return "pass"
+        if "⚠️ 审查未通过" in content:
+            return "fail"
+    
+    return "pass"  # 默认通过
+
+
+# ─────────────────────────────────────────────
+# 流程顺序检查 (改进3)
+# ─────────────────────────────────────────────
+def check_flow_order(state: MessagesState) -> bool:
+    """检查是否遵循大纲→写作→审查的顺序。"""
+    messages = state["messages"]
+    
+    has_outline = False
+    has_chapter = False
+    has_review = False
+    
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            if msg.name == "save_outline":
+                has_outline = True
+            elif msg.name == "write_chapter":
+                has_chapter = True
+            elif msg.name == "review":
+                has_review = True
+    
+    # 如果写了章节但没有大纲，违反流程
+    if has_chapter and not has_outline:
+        return False
+    
+    return True
+
+
+# ─────────────────────────────────────────────
+# 重试机制 (改进4)
+# ─────────────────────────────────────────────
+MAX_RETRIES = 3
+
+def should_retry(state: MessagesState) -> Literal["retry", "continue"]:
+    """判断是否需要重试写作。"""
+    messages = state["messages"]
+    
+    # 统计重试次数
+    retry_count = 0
+    for msg in messages:
+        if isinstance(msg, AIMessage) and "⚠️ 审查未通过" in msg.content:
+            retry_count += 1
+    
+    if retry_count >= MAX_RETRIES:
+        return "continue"  # 达到最大重试次数，继续
+    
+    # 检查最近的审查结果
+    last_message = messages[-1]
+    if isinstance(last_message, AIMessage) and "⚠️ 审查未通过" in last_message.content:
+        return "retry"
+    
+    return "continue"
+
+
+# ─────────────────────────────────────────────
+# 更新后的图结构
+# ─────────────────────────────────────────────
+def build_agent_graph_v2(checkpointer=None):
+    """构建改进后的LangGraph agent图。"""
+    from langgraph.checkpoint.memory import InMemorySaver
+    from .event_log import log_event
+    
+    builder = StateGraph(MessagesState)
+    
+    # 包装ToolNode
+    _tool_node = ToolNode(tools)
+    
+    def logged_tools_node(state):
+        log_event("STEP_STARTED", {"stepName": "tools"})
+        result = _tool_node.invoke(state)
+        for msg in result.get("messages", []):
+            if hasattr(msg, "name") and msg.name:
+                log_event("TOOL_CALL_END", {
+                    "toolCallId": getattr(msg, "tool_call_id", ""),
+                    "name": msg.name,
+                    "result": str(getattr(msg, "content", ""))[:200],
+                })
+        log_event("STEP_FINISHED", {"stepName": "tools"})
+        return result
+    
+    # 添加节点
+    builder.add_node("agent", agent_node)
+    builder.add_node("tools", logged_tools_node)
+    builder.add_node("review", review_node)
+    
+    # 添加边
+    builder.add_edge(START, "agent")
+    
+    # agent → tools 或 END
+    builder.add_conditional_edges("agent", should_continue, ["tools", END])
+    
+    # tools → review (如果刚写了章节) 或 agent
+    def after_tools(state: MessagesState) -> Literal["review", "agent"]:
+        """工具执行后：如果是write_chapter则审查，否则继续agent。"""
+        messages = state["messages"]
+        last_msg = messages[-1]
+        if isinstance(last_msg, ToolMessage) and last_msg.name == "write_chapter":
+            return "review"
+        return "agent"
+    
+    builder.add_conditional_edges("tools", after_tools, ["review", "agent"])
+    
+    # review → pass/fail
+    builder.add_conditional_edges("review", quality_check, {
+        "pass": "agent",      # 通过：继续agent
+        "fail": "agent",      # 未通过：也回agent（agent会重写）
+    })
+    
+    if checkpointer is None:
+        checkpointer = InMemorySaver()
+    
+    return builder.compile(checkpointer=checkpointer)
+
+
+# 保持向后兼容
+def build_agent_graph(checkpointer=None):
+    """构建LangGraph agent图（兼容旧版）。"""
+    return build_agent_graph_v2(checkpointer)
+
+
+# ─────────────────────────────────────────────
 # 运行入口
 # ─────────────────────────────────────────────
 def run_agent(paper_title: str, original_text: str, target_audience: str = "大一非理工科学生",

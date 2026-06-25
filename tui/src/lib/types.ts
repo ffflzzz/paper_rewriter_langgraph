@@ -11,6 +11,7 @@ export type AgUiEventType =
   | 'TOOL_CALL_START'
   | 'TOOL_CALL_ARGS'
   | 'TOOL_CALL_END'
+  | 'TOOL_CALL_RESULT'
   | 'STATE_SNAPSHOT'
   | 'STATE_DELTA'
   | 'MESSAGES_SNAPSHOT'

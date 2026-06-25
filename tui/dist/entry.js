@@ -34500,7 +34500,10 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
               setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running" }]);
               break;
             case "TOOL_CALL_END":
-              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done", result: String(e.content || e.result || "") } : tc));
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done" } : tc));
+              break;
+            case "TOOL_CALL_RESULT":
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, result: String(e.content || "") } : tc));
               break;
             case "STEP_STARTED":
               setStatus("processing");

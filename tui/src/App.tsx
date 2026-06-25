@@ -35,7 +35,19 @@ export function App() {
   const [abortFn, setAbortFn] = useState<(() => void) | null>(null)
   const [startedAt] = useState(() => Date.now())
   const [inputReady, setInputReady] = useState(false)
-  const [history, setHistory] = useState<string[]>([])
+  const [history, setHistory] = useState<string[]>(() => {
+    // Load history from file on startup
+    try {
+      const { readFileSync } = require('fs')
+      const { join } = require('path')
+      const { homedir } = require('os')
+      const historyFile = join(homedir(), '.rewriter', 'history.json')
+      const data = readFileSync(historyFile, 'utf-8')
+      return JSON.parse(data)
+    } catch {
+      return []
+    }
+  })
   const [historyIdx, setHistoryIdx] = useState(-1)
 
   // Delay input capture to avoid capturing the launch command

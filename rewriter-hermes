@@ -1,0 +1,54 @@
+#!/bin/bash
+# Paper Rewriter via Hermes TUI
+# Uses AG-UI to Hermes protocol gateway
+
+SCRIPT_PATH="$(readlink -f "$0")"
+PROJECT_DIR="$(dirname "$SCRIPT_PATH")"
+GATEWAY="$PROJECT_DIR/agui_to_hermes_gateway.py"
+AGUI_URL="${AGUI_URL:-http://localhost:8765}"
+GATEWAY_PORT="${GATEWAY_PORT:-9999}"
+
+# Check dependencies
+if ! command -v hermes &>/dev/null; then
+    echo "Error: hermes not found. Install Hermes Agent first."
+    exit 1
+fi
+
+if ! command -v python3 &>/dev/null; then
+    echo "Error: python3 not found."
+    exit 1
+fi
+
+# Install Python deps if needed
+python3 -c "import websockets, requests" 2>/dev/null || {
+    echo "Installing Python dependencies..."
+    pip3 install --break-system-packages websockets requests 2>/dev/null || pip3 install websockets requests
+}
+
+# Start AG-UI backend if not running
+if ! curl -s --connect-timeout 3 "$AGUI_URL/api/status" >/dev/null 2>&1; then
+    echo "Starting AG-UI backend..."
+    cd "$PROJECT_DIR" && python3 -B -m agent.server_agui &
+    AGUI_PID=$!
+    for i in $(seq 1 30); do
+        if curl -s --connect-timeout 1 "$AGUI_URL/api/status" >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    if ! curl -s --connect-timeout 1 "$AGUI_URL/api/status" >/dev/null 2>&1; then
+        echo "Error: AG-UI backend failed to start."
+        kill $AGUI_PID 2>/dev/null
+        exit 1
+    fi
+fi
+
+# Start gateway in background
+echo "Starting AG-UI → Hermes gateway on port $GATEWAY_PORT..."
+python3 "$GATEWAY" --port "$GATEWAY_PORT" --url "$AGUI_URL" &
+GATEWAY_PID=$!
+sleep 2
+
+# Launch Hermes TUI connected to our gateway
+export HERMES_TUI_GATEWAY_URL="ws://localhost:$GATEWAY_PORT"
+exec hermes --tui

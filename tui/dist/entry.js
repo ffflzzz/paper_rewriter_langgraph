@@ -34177,6 +34177,18 @@ var TOOL_NAMES = {
   "generate_pdf": "\u751F\u6210PDF",
   "search_original": "\u641C\u7D22\u539F\u6587"
 };
+var TOOL_ICONS = {
+  "search_paper": "\u{1F50D}",
+  "download_paper": "\u{1F4E5}",
+  "read_original_segment": "\u{1F4D6}",
+  "write_chapter": "\u270D\uFE0F",
+  "read_chapter": "\u{1F4D6}",
+  "list_chapters": "\u{1F4CB}",
+  "self_review_chapter": "\u{1F50D}",
+  "save_outline": "\u{1F4DD}",
+  "generate_pdf": "\u{1F4C4}",
+  "search_original": "\u{1F50D}"
+};
 function formatArgs(args) {
   try {
     const parsed = JSON.parse(args);
@@ -34193,12 +34205,19 @@ function formatArgs(args) {
     return args.length > 80 ? args.slice(0, 80) + "\u2026" : args;
   }
 }
+function formatDuration(startMs) {
+  const elapsed = Date.now() - startMs;
+  if (elapsed < 1e3) return `${elapsed}ms`;
+  return `${(elapsed / 1e3).toFixed(1)}s`;
+}
 var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls }) {
   if (toolCalls.length === 0) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.yellow, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: tc.status === "running" ? theme.yellow : theme.green, children: [
         tc.status === "running" ? "\u23F3" : "\u2705",
+        " ",
+        TOOL_ICONS[tc.name] || "\u{1F527}",
         " ",
         TOOL_NAMES[tc.name] || tc.name
       ] }),
@@ -34206,13 +34225,17 @@ var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls
         " (",
         tc.name,
         ")"
+      ] }),
+      tc.startedAt && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+        " \xB7 ",
+        formatDuration(tc.startedAt)
       ] })
     ] }),
     tc.args && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
       "\u25B8 ",
       formatArgs(tc.args)
     ] }) }),
-    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.green, children: tc.result.length > 200 ? tc.result.slice(0, 200) + "\u2026" : tc.result }) })
+    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, flexDirection: "column", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.green, children: tc.result.length > 300 ? tc.result.slice(0, 300) + "\u2026" : tc.result }) })
   ] }, tc.id)) });
 });
 
@@ -34497,7 +34520,7 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
               setStatus("streaming");
               break;
             case "TOOL_CALL_START":
-              setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running" }]);
+              setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running", startedAt: Date.now() }]);
               break;
             case "TOOL_CALL_END":
               setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done" } : tc));

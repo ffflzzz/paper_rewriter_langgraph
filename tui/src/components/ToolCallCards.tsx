@@ -21,6 +21,20 @@ const TOOL_NAMES: Record<string, string> = {
   'search_original': '搜索原文',
 }
 
+// 工具图标
+const TOOL_ICONS: Record<string, string> = {
+  'search_paper': '🔍',
+  'download_paper': '📥',
+  'read_original_segment': '📖',
+  'write_chapter': '✍️',
+  'read_chapter': '📖',
+  'list_chapters': '📋',
+  'self_review_chapter': '🔍',
+  'save_outline': '📝',
+  'generate_pdf': '📄',
+  'search_original': '🔍',
+}
+
 function formatArgs(args: string): string {
   try {
     const parsed = JSON.parse(args)
@@ -38,6 +52,12 @@ function formatArgs(args: string): string {
   }
 }
 
+function formatDuration(startMs: number): string {
+  const elapsed = Date.now() - startMs
+  if (elapsed < 1000) return `${elapsed}ms`
+  return `${(elapsed / 1000).toFixed(1)}s`
+}
+
 export const ToolCallCards = memo(function ToolCallCards({ toolCalls }: Props) {
   if (toolCalls.length === 0) return null
 
@@ -45,12 +65,15 @@ export const ToolCallCards = memo(function ToolCallCards({ toolCalls }: Props) {
     <Box flexDirection="column" paddingLeft={1}>
       {toolCalls.map(tc => (
         <Box key={tc.id} flexDirection="column">
-          {/* Tool name + status */}
+          {/* Tool name + status + duration */}
           <Box>
-            <Text color={theme.yellow}>
-              {tc.status === 'running' ? '⏳' : '✅'} {TOOL_NAMES[tc.name] || tc.name}
+            <Text color={tc.status === 'running' ? theme.yellow : theme.green}>
+              {tc.status === 'running' ? '⏳' : '✅'} {TOOL_ICONS[tc.name] || '🔧'} {TOOL_NAMES[tc.name] || tc.name}
             </Text>
             <Text color={theme.dimGreen}> ({tc.name})</Text>
+            {tc.startedAt && (
+              <Text color={theme.dimGreen}> · {formatDuration(tc.startedAt)}</Text>
+            )}
           </Box>
           {/* Args */}
           {tc.args && (
@@ -60,9 +83,9 @@ export const ToolCallCards = memo(function ToolCallCards({ toolCalls }: Props) {
           )}
           {/* Result */}
           {tc.status === 'done' && tc.result && (
-            <Box paddingLeft={3}>
+            <Box paddingLeft={3} flexDirection="column">
               <Text color={theme.green}>
-                {tc.result.length > 200 ? tc.result.slice(0, 200) + '…' : tc.result}
+                {tc.result.length > 300 ? tc.result.slice(0, 300) + '…' : tc.result}
               </Text>
             </Box>
           )}

@@ -70,6 +70,7 @@ export interface ToolCallInfo {
   args: string
   status: 'running' | 'done'
   result?: string
+  startedAt?: number
 }
 
 export interface HitlPromptData {

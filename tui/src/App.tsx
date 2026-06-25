@@ -159,7 +159,7 @@ export function App() {
               setStatus('streaming')
               break
             case 'TOOL_CALL_START':
-              setToolCalls(prev => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || '?'), args: String(e.args || ''), status: 'running' as const }])
+              setToolCalls(prev => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || '?'), args: String(e.args || ''), status: 'running' as const, startedAt: Date.now() }])
               break
             case 'TOOL_CALL_END':
               setToolCalls(prev => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: 'done' as const } : tc))

@@ -121,10 +121,24 @@ class AguiClient:
                         await self.ws.send(hermes_event("message.delta", self.session_id, {"text": delta}))
 
                 elif event_type == "TOOL_CALL_START":
+                    tool_name = event.get("toolCallName", event.get("name", "?"))
+                    tool_labels = {
+                        "search_paper": "🔍 搜索论文",
+                        "download_paper": "📥 下载论文",
+                        "read_original_segment": "📖 读取原文",
+                        "write_chapter": "✍️ 写章节",
+                        "save_outline": "📝 保存大纲",
+                        "self_review_chapter": "🔍 自审章节",
+                        "generate_pdf": "📄 生成PDF",
+                        "search_original": "🔍 搜索原文",
+                    }
+                    label = tool_labels.get(tool_name, f"🔧 {tool_name}")
                     await self.ws.send(hermes_event("tool.start", self.session_id, {
-                        "name": event.get("toolCallName", event.get("name", "?")),
+                        "name": tool_name,
                         "args": event.get("args", ""),
                     }))
+                    await self.ws.send(hermes_event("status.update", self.session_id,
+                        {"kind": "process", "text": f"{label}..."}))
 
                 elif event_type == "TOOL_CALL_END":
                     await self.ws.send(hermes_event("tool.complete", self.session_id, {
@@ -139,8 +153,15 @@ class AguiClient:
                     }))
 
                 elif event_type == "STEP_STARTED":
+                    step_name = event.get("stepName", "unknown")
+                    step_labels = {
+                        "agent": "🧠 agent节点 — LLM推理中",
+                        "tools": "🔧 tools节点 — 执行工具",
+                        "review": "🔍 review节点 — 独立审查",
+                    }
+                    label = step_labels.get(step_name, f"⚙️ {step_name}")
                     await self.ws.send(hermes_event("status.update", self.session_id,
-                        {"kind": "process", "text": "processing..."}))
+                        {"kind": "process", "text": label}))
 
                 elif event_type == "RUN_STARTED":
                     await self.ws.send(hermes_event("status.update", self.session_id,

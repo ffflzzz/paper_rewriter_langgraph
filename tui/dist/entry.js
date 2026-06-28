@@ -34403,15 +34403,20 @@ function loadStore() {
       return { currentThreadId: null, threads: {} };
     }
     return JSON.parse(readFileSync3(THREADS_META_FILE, "utf-8"));
-  } catch {
+  } catch (e) {
+    console.error("[thread-store] load error:", e);
     return { currentThreadId: null, threads: {} };
   }
 }
 function saveStore(store) {
-  if (!existsSync3(THREADS_DIR)) {
-    mkdirSync2(THREADS_DIR, { recursive: true });
+  try {
+    if (!existsSync3(THREADS_DIR)) {
+      mkdirSync2(THREADS_DIR, { recursive: true });
+    }
+    writeFileSync2(THREADS_META_FILE, JSON.stringify(store, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[thread-store] save error:", e);
   }
-  writeFileSync2(THREADS_META_FILE, JSON.stringify(store, null, 2), "utf-8");
 }
 function getCurrentThreadId() {
   return loadStore().currentThreadId;

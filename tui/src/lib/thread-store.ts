@@ -33,16 +33,21 @@ function loadStore(): ThreadsStore {
       return { currentThreadId: null, threads: {} }
     }
     return JSON.parse(readFileSync(THREADS_META_FILE, 'utf-8')) as ThreadsStore
-  } catch {
+  } catch (e) {
+    console.error('[thread-store] load error:', e)
     return { currentThreadId: null, threads: {} }
   }
 }
 
 function saveStore(store: ThreadsStore): void {
-  if (!existsSync(THREADS_DIR)) {
-    mkdirSync(THREADS_DIR, { recursive: true })
+  try {
+    if (!existsSync(THREADS_DIR)) {
+      mkdirSync(THREADS_DIR, { recursive: true })
+    }
+    writeFileSync(THREADS_META_FILE, JSON.stringify(store, null, 2), 'utf-8')
+  } catch (e) {
+    console.error('[thread-store] save error:', e)
   }
-  writeFileSync(THREADS_META_FILE, JSON.stringify(store, null, 2), 'utf-8')
 }
 
 /** 获取当前 threadId，如果没有则返回 null */

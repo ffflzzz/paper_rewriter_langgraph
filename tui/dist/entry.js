@@ -34108,14 +34108,10 @@ var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
   const reserved = 5;
   const maxVisibleLines = Math.max(5, rows - reserved);
   const visibleLines = contentLines.slice(-maxVisibleLines);
-  const padLines = Math.max(0, maxVisibleLines - visibleLines.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    Array.from({ length: padLines }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { children: " " }) }, `pad-${i}`)),
-    visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
-      line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
-    ] }, line.key))
-  ] });
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
+  ] }, line.key)) });
 });
 
 // src/components/StatusBar.tsx

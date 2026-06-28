@@ -89,16 +89,9 @@ export const TranscriptPane = memo(function TranscriptPane({
   // Only show last N lines (newest at bottom)
   const visibleLines = contentLines.slice(-maxVisibleLines)
 
-  // Empty lines to push content to bottom
-  const padLines = Math.max(0, maxVisibleLines - visibleLines.length)
-
   return (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={1}>
-      {/* Empty lines at top to push content to bottom */}
-      {Array.from({ length: padLines }, (_, i) => (
-        <Box key={`pad-${i}`}><Text> </Text></Box>
-      ))}
-      {/* Content at bottom */}
+    <Box flexDirection="column" paddingLeft={1} paddingRight={1}>
+      {/* Content — always fills available space, newest at bottom */}
       {visibleLines.map((line) => (
         <Box key={line.key}>
           {line.prefix && <Text color={line.prefixColor || theme.dimGreen}>{line.prefix}</Text>}

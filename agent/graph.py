@@ -573,7 +573,7 @@ def agent_node(state: MessagesState) -> dict:
         inp, out = extract_usage_from_response(response)
         if inp > 0 or out > 0:
             record_usage(
-                model="mimo-v2.5-pro",
+                model=LLM_MODEL,
                 input_tokens=inp, output_tokens=out,
                 node="agent",
                 prompt_version=get_version_info().get("current_version", ""),

@@ -255,20 +255,27 @@ async def handle_client(websocket, agui_url: str):
                         await websocket.send(hermes_event("command.quit", session_id, {}))
                         await websocket.send(hermes_response(rid, {"ok": True}))
                     elif text == "/threads":
-                        # Load threads from file
+                        # Load threads from file and format as text
                         import json, os
                         threads_dir = os.path.expanduser("~/.rewriter")
                         threads_file = os.path.join(threads_dir, "threads.json")
-                        threads_data = []
+                        lines = ["No threads yet."]
                         if os.path.exists(threads_file):
                             try:
                                 with open(threads_file) as f:
                                     store = json.load(f)
-                                    threads_data = list(store.get("threads", {}).values())
+                                    threads = list(store.get("threads", {}).values())
+                                    current = store.get("currentThreadId")
+                                    if threads:
+                                        lines = ["Threads:"]
+                                        for t in sorted(threads, key=lambda x: x.get("lastActive", 0), reverse=True):
+                                            marker = "●" if t["id"] == current else "○"
+                                            title = t.get("title", "")[:40] or "(untitled)"
+                                            lines.append(f"  {marker} {t['id'][:8]} {title}")
                             except:
                                 pass
-                        await websocket.send(hermes_event("command.list_threads", session_id, {
-                            "threads": threads_data,
+                        await websocket.send(hermes_event("TEXT_MESSAGE_CONTENT", session_id, {
+                            "delta": "\n".join(lines) + "\n",
                         }))
                         await websocket.send(hermes_response(rid, {"ok": True}))
                     elif text == "/config":

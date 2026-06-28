@@ -34391,6 +34391,75 @@ function SetupWizard({ onComplete }) {
   ] });
 }
 
+// src/lib/thread-store.ts
+import { readFileSync as readFileSync3, writeFileSync as writeFileSync2, mkdirSync as mkdirSync2, existsSync as existsSync3 } from "fs";
+import { join as join2 } from "path";
+import { homedir as homedir2 } from "os";
+var THREADS_DIR = join2(homedir2(), ".rewriter");
+var THREADS_META_FILE = join2(THREADS_DIR, "threads.json");
+function loadStore() {
+  try {
+    if (!existsSync3(THREADS_META_FILE)) {
+      return { currentThreadId: null, threads: {} };
+    }
+    return JSON.parse(readFileSync3(THREADS_META_FILE, "utf-8"));
+  } catch {
+    return { currentThreadId: null, threads: {} };
+  }
+}
+function saveStore(store) {
+  if (!existsSync3(THREADS_DIR)) {
+    mkdirSync2(THREADS_DIR, { recursive: true });
+  }
+  writeFileSync2(THREADS_META_FILE, JSON.stringify(store, null, 2), "utf-8");
+}
+function getCurrentThreadId() {
+  return loadStore().currentThreadId;
+}
+function setCurrentThreadId(threadId) {
+  const store = loadStore();
+  store.currentThreadId = threadId;
+  saveStore(store);
+}
+function createThread(title = "") {
+  const threadId = crypto.randomUUID();
+  const now = Date.now();
+  const store = loadStore();
+  store.currentThreadId = threadId;
+  store.threads[threadId] = {
+    id: threadId,
+    title,
+    createdAt: now,
+    lastActive: now,
+    messageCount: 0
+  };
+  saveStore(store);
+  return threadId;
+}
+function listThreads() {
+  const store = loadStore();
+  return Object.values(store.threads).sort(
+    (a, b) => b.lastActive - a.lastActive
+  );
+}
+function deleteThread(threadId) {
+  const store = loadStore();
+  if (!store.threads[threadId]) return false;
+  delete store.threads[threadId];
+  if (store.currentThreadId === threadId) {
+    store.currentThreadId = Object.keys(store.threads)[0] || null;
+  }
+  saveStore(store);
+  return true;
+}
+function updateThreadMeta(threadId, updates) {
+  const store = loadStore();
+  if (store.threads[threadId]) {
+    store.threads[threadId] = { ...store.threads[threadId], ...updates, lastActive: Date.now() };
+    saveStore(store);
+  }
+}
+
 // src/App.tsx
 var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
 function App2() {
@@ -34402,7 +34471,12 @@ function App2() {
   const [isStreaming, setIsStreaming] = (0, import_react27.useState)(false);
   const [streamingText, setStreamingText] = (0, import_react27.useState)("");
   const [status, setStatus] = (0, import_react27.useState)("idle");
-  const [sessionId] = (0, import_react27.useState)(() => `local-${Date.now() % 1e5}`);
+  const [sessionId, setSessionId] = (0, import_react27.useState)(() => {
+    const existing = getCurrentThreadId();
+    if (existing) return existing;
+    return createThread();
+  });
+  const [threadList, setThreadList] = (0, import_react27.useState)([]);
   const [toolCalls, setToolCalls] = (0, import_react27.useState)([]);
   const [hitlPrompt, setHitlPrompt] = (0, import_react27.useState)(null);
   const [hitlCallback, setHitlCallback] = (0, import_react27.useState)(null);
@@ -34413,11 +34487,11 @@ function App2() {
   const [inputReady, setInputReady] = (0, import_react27.useState)(false);
   const [history, setHistory] = (0, import_react27.useState)(() => {
     try {
-      const { readFileSync: readFileSync3 } = __require("fs");
-      const { join: join2 } = __require("path");
-      const { homedir: homedir2 } = __require("os");
-      const historyFile = join2(homedir2(), ".rewriter", "history.json");
-      const data = readFileSync3(historyFile, "utf-8");
+      const { readFileSync: readFileSync4 } = __require("fs");
+      const { join: join3 } = __require("path");
+      const { homedir: homedir3 } = __require("os");
+      const historyFile = join3(homedir3(), ".rewriter", "history.json");
+      const data = readFileSync4(historyFile, "utf-8");
       return JSON.parse(data);
     } catch {
       return [];
@@ -34435,11 +34509,15 @@ function App2() {
         role: "assistant",
         content: `Paper Rewriter \xB7 ${config.model}
 
-Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
+Commands: /help \xB7 /new \xB7 /threads \xB7 /thread <id> \xB7 /quit
+Type a message to chat.`,
         timestamp: Date.now()
       }]);
     }
   }, [config, showSetup]);
+  const refreshThreads = (0, import_react27.useCallback)(() => {
+    setThreadList(listThreads());
+  }, []);
   const handleSetupComplete = (0, import_react27.useCallback)((newConfig) => {
     setConfig(newConfig);
     setShowSetup(false);
@@ -34477,20 +34555,95 @@ Type a message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit`,
         return;
       }
       if (text === "/help") {
-        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "/help    Show this help\n/new     New session\n/status  Show status\n/config  Reconfigure model\n/quit    Exit", timestamp: Date.now() }]);
+        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "/help    Show this help\n/new     New thread (conversation)\n/threads List all threads\n/thread <id> Switch to thread\n/del <id> Delete a thread\n/status  Show status\n/config  Reconfigure model\n/quit    Exit", timestamp: Date.now() }]);
         setInputText("");
         return;
       }
       if (text === "/new") {
+        const newId = createThread();
+        setSessionId(newId);
+        setCurrentThreadId(newId);
         setMessages([]);
         setToolCalls([]);
         setTurnCount(0);
+        refreshThreads();
+        setInputText("");
+        return;
+      }
+      if (text === "/threads") {
+        const threads = listThreads();
+        if (threads.length === 0) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: "No threads yet.", timestamp: Date.now() }]);
+        } else {
+          const lines = threads.map((t) => {
+            const marker = t.id === sessionId ? " \u25CF" : "  ";
+            const title = t.title || t.id.slice(0, 8);
+            return `${marker} ${t.id.slice(0, 8)}... ${title} (${t.messageCount} msgs)`;
+          }).join("\n");
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: `Threads (${threads.length}):
+${lines}`, timestamp: Date.now() }]);
+        }
+        setInputText("");
+        return;
+      }
+      if (text.startsWith("/thread ")) {
+        const targetId = text.slice(8).trim();
+        if (!targetId) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: "Usage: /thread <id>", timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        const threads = listThreads();
+        const found = threads.find((t) => t.id === targetId || t.id.startsWith(targetId));
+        if (!found) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: `Thread "${targetId}" not found. Use /threads to list.`, timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        setSessionId(found.id);
+        setCurrentThreadId(found.id);
+        fetch(`http://localhost:8765/api/sessions/${found.id}/messages`).then((r) => r.ok ? r.json() : Promise.resolve({ messages: [] })).then((data) => {
+          const loaded = (data.messages || []).map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            toolName: m.tool_name || void 0,
+            timestamp: m.timestamp * 1e3
+          }));
+          setMessages(loaded);
+        }).catch(() => setMessages([]));
+        setToolCalls([]);
+        setTurnCount(0);
+        refreshThreads();
+        setInputText("");
+        return;
+      }
+      if (text.startsWith("/del ")) {
+        const targetId = text.slice(5).trim();
+        if (!targetId) {
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: "Usage: /del <id>", timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        const deleted = deleteThread(targetId);
+        if (deleted) {
+          const current = getCurrentThreadId();
+          if (current) {
+            setSessionId(current);
+            setCurrentThreadId(current);
+            setMessages([]);
+          }
+          refreshThreads();
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: `Thread ${targetId.slice(0, 8)}... deleted.`, timestamp: Date.now() }]);
+        } else {
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: `Thread "${targetId}" not found.`, timestamp: Date.now() }]);
+        }
         setInputText("");
         return;
       }
       if (text === "/status") {
         setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `model: ${config?.model || "unknown"}
-session: ${sessionId}
+thread: ${sessionId}
 messages: ${messages.length}
 turns: ${turnCount}`, timestamp: Date.now() }]);
         setInputText("");
@@ -34526,6 +34679,12 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     setStreamingText("");
     streamingTextRef.current = "";
     setToolCalls([]);
+    fetch("http://localhost:8765/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: sessionId, title: text.slice(0, 50) })
+    }).catch(() => {
+    });
     const abort = runAgent(
       [{ id: `m-${Date.now()}`, role: "user", content: text }],
       sessionId,
@@ -34562,6 +34721,14 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
           const text2 = streamingTextRef.current;
           if (text2) {
             setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: text2, timestamp: Date.now() }]);
+            fetch("http://localhost:8765/api/sessions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: sessionId, title: "" })
+            }).catch(() => {
+            });
+            updateThreadMeta(sessionId, { messageCount: 0 });
+            refreshThreads();
           }
           streamingTextRef.current = "";
           setIsStreaming(false);
@@ -34594,7 +34761,7 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
         status,
         toolCount: toolCalls.length,
         turnCount,
-        sessionId,
+        sessionId: sessionId.slice(0, 8),
         model: config?.model || "unknown",
         startedAt
       }

@@ -9,6 +9,7 @@ import { StatusBar } from './components/StatusBar.js'
 import { ToolCallCards } from './components/ToolCallCards.js'
 import { HitlPrompt } from './components/HitlPrompt.js'
 import { SetupWizard } from './components/SetupWizard.js'
+import { createThread, getCurrentThreadId, setCurrentThreadId, listThreads, deleteThread, updateThreadMeta } from './lib/thread-store.js'
 
 interface Message {
   id: string
@@ -27,7 +28,12 @@ export function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingText, setStreamingText] = useState('')
   const [status, setStatus] = useState<'idle' | 'processing' | 'streaming' | 'error'>('idle')
-  const [sessionId] = useState(() => `local-${Date.now() % 100000}`)
+  const [sessionId, setSessionId] = useState(() => {
+    const existing = getCurrentThreadId()
+    if (existing) return existing
+    return createThread()
+  })
+  const [threadList, setThreadList] = useState<ReturnType<typeof listThreads>>([])
   const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([])
   const [hitlPrompt, setHitlPrompt] = useState<HitlPromptData | null>(null)
   const [hitlCallback, setHitlCallback] = useState<((answer: string) => void) | null>(null)
@@ -63,11 +69,16 @@ export function App() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Paper Rewriter · ${config.model}\n\nType a message to chat. Commands: /help · /new · /status · /quit`,
+        content: `Paper Rewriter · ${config.model}\n\nCommands: /help · /new · /threads · /thread <id> · /quit\nType a message to chat.`,
         timestamp: Date.now(),
       }])
     }
   }, [config, showSetup])
+
+  // Refresh thread list when switching
+  const refreshThreads = useCallback(() => {
+    setThreadList(listThreads())
+  }, [])
 
   const handleSetupComplete = useCallback((newConfig: RewriterConfig) => {
     setConfig(newConfig)
@@ -112,16 +123,97 @@ export function App() {
 
       if (text === '/quit') { exit(); return }
       if (text === '/help') {
-        setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: '/help    Show this help\n/new     New session\n/status  Show status\n/config  Reconfigure model\n/quit    Exit', timestamp: Date.now() }])
+        setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: '/help    Show this help\n/new     New thread (conversation)\n/threads List all threads\n/thread <id> Switch to thread\n/del <id> Delete a thread\n/status  Show status\n/config  Reconfigure model\n/quit    Exit', timestamp: Date.now() }])
         setInputText('')
         return
       }
       if (text === '/new') {
-        setMessages([]); setToolCalls([]); setTurnCount(0); setInputText('')
+        const newId = createThread()
+        setSessionId(newId)
+        setCurrentThreadId(newId)
+        setMessages([])
+        setToolCalls([])
+        setTurnCount(0)
+        refreshThreads()
+        setInputText('')
+        return
+      }
+      if (text === '/threads') {
+        const threads = listThreads()
+        if (threads.length === 0) {
+          setMessages(prev => [...prev, { id: `t-${Date.now()}`, role: 'assistant', content: 'No threads yet.', timestamp: Date.now() }])
+        } else {
+          const lines = threads.map(t => {
+            const marker = t.id === sessionId ? ' ●' : '  '
+            const title = t.title || t.id.slice(0, 8)
+            return `${marker} ${t.id.slice(0, 8)}... ${title} (${t.messageCount} msgs)`
+          }).join('\n')
+          setMessages(prev => [...prev, { id: `t-${Date.now()}`, role: 'assistant', content: `Threads (${threads.length}):\n${lines}`, timestamp: Date.now() }])
+        }
+        setInputText('')
+        return
+      }
+      if (text.startsWith('/thread ')) {
+        const targetId = text.slice(8).trim()
+        if (!targetId) {
+          setMessages(prev => [...prev, { id: `t-${Date.now()}`, role: 'assistant', content: 'Usage: /thread <id>', timestamp: Date.now() }])
+          setInputText('')
+          return
+        }
+        const threads = listThreads()
+        const found = threads.find(t => t.id === targetId || t.id.startsWith(targetId))
+        if (!found) {
+          setMessages(prev => [...prev, { id: `t-${Date.now()}`, role: 'assistant', content: `Thread "${targetId}" not found. Use /threads to list.`, timestamp: Date.now() }])
+          setInputText('')
+          return
+        }
+        setSessionId(found.id)
+        setCurrentThreadId(found.id)
+        // Load messages from backend session store (best-effort)
+        fetch(`http://localhost:8765/api/sessions/${found.id}/messages`)
+          .then(r => r.ok ? r.json() : Promise.resolve({ messages: [] }))
+          .then(data => {
+            const loaded = (data.messages || []).map((m: any) => ({
+              id: m.id,
+              role: m.role as 'user' | 'assistant' | 'tool',
+              content: m.content,
+              toolName: m.tool_name || undefined,
+              timestamp: m.timestamp * 1000,
+            }))
+            setMessages(loaded)
+          })
+          .catch(() => setMessages([]))
+        setToolCalls([])
+        setTurnCount(0)
+        refreshThreads()
+        setInputText('')
+        return
+      }
+      if (text.startsWith('/del ')) {
+        const targetId = text.slice(5).trim()
+        if (!targetId) {
+          setMessages(prev => [...prev, { id: `d-${Date.now()}`, role: 'assistant', content: 'Usage: /del <id>', timestamp: Date.now() }])
+          setInputText('')
+          return
+        }
+        const deleted = deleteThread(targetId)
+        if (deleted) {
+          const current = getCurrentThreadId()
+          if (current) {
+            setSessionId(current)
+            setCurrentThreadId(current)
+            setMessages([])
+          }
+          refreshThreads()
+          setMessages(prev => [...prev, { id: `d-${Date.now()}`, role: 'assistant', content: `Thread ${targetId.slice(0, 8)}... deleted.`, timestamp: Date.now() }])
+        } else {
+          setMessages(prev => [...prev, { id: `d-${Date.now()}`, role: 'assistant', content: `Thread "${targetId}" not found.`, timestamp: Date.now() }])
+        }
+        setInputText('')
         return
       }
       if (text === '/status') {
-        setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `model: ${config?.model || 'unknown'}\nsession: ${sessionId}\nmessages: ${messages.length}\nturns: ${turnCount}`, timestamp: Date.now() }])
+        setMessages(prev => [...prev, { id: `s-${Date.now()}`, role: 'assistant', content: `model: ${config?.model || 'unknown'}\nthread: ${sessionId}\nmessages: ${messages.length}\nturns: ${turnCount}`, timestamp: Date.now() }])
         setInputText('')
         return
       }
@@ -159,6 +251,13 @@ export function App() {
     setStreamingText(''); streamingTextRef.current = ''
     setToolCalls([])
 
+    // Persist user message to backend
+    fetch('http://localhost:8765/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: sessionId, title: text.slice(0, 50) }),
+    }).catch(() => {})
+
     const abort = runAgent(
       [{ id: `m-${Date.now()}`, role: 'user', content: text }],
       sessionId,
@@ -195,6 +294,14 @@ export function App() {
           const text = streamingTextRef.current
           if (text) {
             setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: text, timestamp: Date.now() }])
+            // Persist assistant reply to backend
+            fetch('http://localhost:8765/api/sessions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: sessionId, title: '' }),
+            }).catch(() => {})
+            updateThreadMeta(sessionId, { messageCount: 0 })
+            refreshThreads()
           }
           streamingTextRef.current = ''
           setIsStreaming(false)
@@ -238,7 +345,7 @@ export function App() {
         status={status}
         toolCount={toolCalls.length}
         turnCount={turnCount}
-        sessionId={sessionId}
+        sessionId={sessionId.slice(0, 8)}
         model={config?.model || 'unknown'}
         startedAt={startedAt}
       />

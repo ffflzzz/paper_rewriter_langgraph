@@ -226,7 +226,55 @@ async def handle_client(websocket, agui_url: str):
                 # Hermes TUI sends prompt.submit with session_id and text
                 text = params.get("text", params.get("content", ""))
                 session_id = params.get("session_id", "")
-                if text:
+                
+                # Handle slash commands at gateway level (before AG-UI)
+                if text.startswith("/") and text in ("/help", "/quit", "/new", "/threads", "/status", "/config"):
+                    slash_responses = {
+                        "/help": "Commands: /new, /threads, /thread <id>, /del <id>, /status, /config, /quit",
+                        "/status": f"model: agnes-2.0-flash | thread: {session_id}",
+                        "/new": None,  # special handling below
+                        "/quit": None,  # special handling below
+                        "/threads": None,  # special handling below
+                        "/config": None,  # special handling below
+                    }
+                    resp_text = slash_responses.get(text)
+                    
+                    if resp_text is not None:
+                        # Send as a text message event so TUI displays it
+                        await websocket.send(hermes_event("TEXT_MESSAGE_CONTENT", session_id, {
+                            "delta": resp_text + "\n",
+                        }))
+                        await websocket.send(hermes_response(rid, {"ok": True}))
+                    elif text == "/new":
+                        new_sid = f"agui-{int(time.time())}"
+                        await websocket.send(hermes_event("command.new_session", session_id, {
+                            "new_session_id": new_sid,
+                        }))
+                        await websocket.send(hermes_response(rid, {"ok": True}))
+                    elif text == "/quit":
+                        await websocket.send(hermes_event("command.quit", session_id, {}))
+                        await websocket.send(hermes_response(rid, {"ok": True}))
+                    elif text == "/threads":
+                        # Load threads from file
+                        import json, os
+                        threads_dir = os.path.expanduser("~/.rewriter")
+                        threads_file = os.path.join(threads_dir, "threads.json")
+                        threads_data = []
+                        if os.path.exists(threads_file):
+                            try:
+                                with open(threads_file) as f:
+                                    store = json.load(f)
+                                    threads_data = list(store.get("threads", {}).values())
+                            except:
+                                pass
+                        await websocket.send(hermes_event("command.list_threads", session_id, {
+                            "threads": threads_data,
+                        }))
+                        await websocket.send(hermes_response(rid, {"ok": True}))
+                    elif text == "/config":
+                        await websocket.send(hermes_event("command.reconfigure", session_id, {}))
+                        await websocket.send(hermes_response(rid, {"ok": True}))
+                    return
                     asyncio.create_task(client.send_message(text, rid))
                     # Send immediate ack so TUI doesn't hang
                     await websocket.send(hermes_response(rid, {"ok": True, "status": "processing"}))
@@ -251,6 +299,17 @@ async def handle_client(websocket, agui_url: str):
 
             elif method == "ping":
                 await websocket.send(hermes_response(rid, {"pong": True}))
+
+            elif method == "complete.slash":
+                # Hermes TUI asks for slash command completions
+                text = params.get("text", "")
+                commands = [
+                    "help", "new", "threads", "thread", "del", "status", "config", "quit"
+                ]
+                filtered = [c for c in commands if text.lower().startswith(c)]
+                await websocket.send(hermes_response(rid, {
+                    "completions": [{"label": "/" + c} for c in filtered]
+                }))
 
             else:
                 await websocket.send(hermes_response(rid, {}))

@@ -121,6 +121,7 @@ export function App() {
       setHistory(prev => [...prev, text])
       setHistoryIdx(-1)
 
+      // Route all slash commands
       if (text === '/quit') { exit(); return }
       if (text === '/help') {
         setMessages(prev => [...prev, { id: `h-${Date.now()}`, role: 'assistant', content: '/help    Show this help\n/new     New thread (conversation)\n/threads List all threads\n/thread <id> Switch to thread\n/del <id> Delete a thread\n/status  Show status\n/config  Reconfigure model\n/quit    Exit', timestamp: Date.now() }])

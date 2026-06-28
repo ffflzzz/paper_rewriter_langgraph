@@ -218,6 +218,18 @@ async def handle_client(websocket, agui_url: str):
                 text = params.get("text", params.get("content", ""))
                 if text:
                     asyncio.create_task(client.send_message(text, rid))
+                    await websocket.send(hermes_response(rid, {"ok": True, "status": "processing"}))
+                else:
+                    await websocket.send(hermes_response(rid, {"ok": True}))
+
+            elif method == "prompt.submit":
+                # Hermes TUI sends prompt.submit with session_id and text
+                text = params.get("text", params.get("content", ""))
+                session_id = params.get("session_id", "")
+                if text:
+                    asyncio.create_task(client.send_message(text, rid))
+                    # Send immediate ack so TUI doesn't hang
+                    await websocket.send(hermes_response(rid, {"ok": True, "status": "processing"}))
                 else:
                     await websocket.send(hermes_response(rid, {"ok": True}))
 

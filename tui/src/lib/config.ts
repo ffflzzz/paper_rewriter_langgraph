@@ -80,6 +80,12 @@ export const PROVIDERS: Record<string, { name: string; baseUrl: string; models: 
     models: ['deepseek-chat', 'deepseek-reasoner'],
     envKey: 'DEEPSEEK_API_KEY',
   },
+  'agnes-ai': {
+    name: 'Agnes AI',
+    baseUrl: 'https://apihub.agnes-ai.com/v1',
+    models: ['Agnes-2.0-Flash'],
+    envKey: 'AGNES_API_KEY',
+  },
   'custom': {
     name: 'Custom (OpenAI兼容)',
     baseUrl: '',

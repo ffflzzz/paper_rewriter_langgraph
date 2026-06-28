@@ -686,10 +686,11 @@ def review_node(state: MessagesState):
     
     # 创建独立的审查LLM (同模型，但不同temperature)
     from langchain_openai import ChatOpenAI
+    from pipeline.config import LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
     review_llm = ChatOpenAI(
-        base_url="https://token-plan-cn.xiaomimimo.com/v1",
-        api_key=MIMO_API_KEY,
-        model="mimo-v2.5-pro",
+        base_url=LLM_BASE_URL,
+        api_key=LLM_API_KEY,
+        model=LLM_MODEL,
         temperature=0.3,  # 更严格的temperature
     )
     

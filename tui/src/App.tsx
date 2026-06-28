@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Box, Text, useInput, useApp } from 'ink'
 import { theme } from './lib/theme.js'
 import { runAgent } from './lib/agui-client.js'
@@ -32,6 +32,7 @@ export function App() {
   const [hitlPrompt, setHitlPrompt] = useState<HitlPromptData | null>(null)
   const [hitlCallback, setHitlCallback] = useState<((answer: string) => void) | null>(null)
   const [turnCount, setTurnCount] = useState(0)
+  const streamingTextRef = useRef('')
   const [abortFn, setAbortFn] = useState<(() => void) | null>(null)
   const [startedAt] = useState(() => Date.now())
   const [inputReady, setInputReady] = useState(false)
@@ -155,7 +156,7 @@ export function App() {
     setTurnCount(prev => prev + 1)
     setStatus('processing')
     setIsStreaming(true)
-    setStreamingText('')
+    setStreamingText(''); streamingTextRef.current = ''
     setToolCalls([])
 
     const abort = runAgent(
@@ -167,7 +168,8 @@ export function App() {
           const e = event as Record<string, unknown>
           switch (e.type) {
             case 'TEXT_MESSAGE_CONTENT':
-              setStreamingText(prev => prev + String(e.delta || ''))
+              streamingTextRef.current += String(e.delta || '')
+              setStreamingText(streamingTextRef.current)
               setStatus('streaming')
               break
             case 'TOOL_CALL_START':
@@ -190,12 +192,11 @@ export function App() {
           setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'assistant', content: `Error: ${err.message}`, timestamp: Date.now() }])
         },
         onDone: () => {
-          setStreamingText(current => {
-            if (current) {
-              setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: current, timestamp: Date.now() }])
-            }
-            return ''
-          })
+          const text = streamingTextRef.current
+          if (text) {
+            setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: text, timestamp: Date.now() }])
+          }
+          streamingTextRef.current = ''
           setIsStreaming(false)
           setStatus('idle')
         },

@@ -1378,7 +1378,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef(initialValue) {
+        function useRef2(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -2172,7 +2172,7 @@ var require_react_development = __commonJS({
         exports.useLayoutEffect = useLayoutEffect2;
         exports.useMemo = useMemo3;
         exports.useReducer = useReducer;
-        exports.useRef = useRef;
+        exports.useRef = useRef2;
         exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -33985,6 +33985,12 @@ var PROVIDERS = {
     models: ["deepseek-chat", "deepseek-reasoner"],
     envKey: "DEEPSEEK_API_KEY"
   },
+  "agnes-ai": {
+    name: "Agnes AI",
+    baseUrl: "https://apihub.agnes-ai.com/v1",
+    models: ["Agnes-2.0-Flash"],
+    envKey: "AGNES_API_KEY"
+  },
   "custom": {
     name: "Custom (OpenAI\u517C\u5BB9)",
     baseUrl: "",
@@ -34405,10 +34411,22 @@ function App2() {
   const [hitlPrompt, setHitlPrompt] = (0, import_react27.useState)(null);
   const [hitlCallback, setHitlCallback] = (0, import_react27.useState)(null);
   const [turnCount, setTurnCount] = (0, import_react27.useState)(0);
+  const streamingTextRef = (0, import_react27.useRef)("");
   const [abortFn, setAbortFn] = (0, import_react27.useState)(null);
   const [startedAt] = (0, import_react27.useState)(() => Date.now());
   const [inputReady, setInputReady] = (0, import_react27.useState)(false);
-  const [history, setHistory] = (0, import_react27.useState)([]);
+  const [history, setHistory] = (0, import_react27.useState)(() => {
+    try {
+      const { readFileSync: readFileSync3 } = __require("fs");
+      const { join: join2 } = __require("path");
+      const { homedir: homedir2 } = __require("os");
+      const historyFile = join2(homedir2(), ".rewriter", "history.json");
+      const data = readFileSync3(historyFile, "utf-8");
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  });
   const [historyIdx, setHistoryIdx] = (0, import_react27.useState)(-1);
   (0, import_react27.useEffect)(() => {
     const timer = setTimeout(() => setInputReady(true), 500);
@@ -34510,6 +34528,7 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
     setStatus("processing");
     setIsStreaming(true);
     setStreamingText("");
+    streamingTextRef.current = "";
     setToolCalls([]);
     const abort = runAgent(
       [{ id: `m-${Date.now()}`, role: "user", content: text }],
@@ -34520,7 +34539,8 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
           const e = event;
           switch (e.type) {
             case "TEXT_MESSAGE_CONTENT":
-              setStreamingText((prev) => prev + String(e.delta || ""));
+              streamingTextRef.current += String(e.delta || "");
+              setStreamingText(streamingTextRef.current);
               setStatus("streaming");
               break;
             case "TOOL_CALL_START":
@@ -34543,12 +34563,11 @@ turns: ${turnCount}`, timestamp: Date.now() }]);
           setMessages((prev) => [...prev, { id: `e-${Date.now()}`, role: "assistant", content: `Error: ${err.message}`, timestamp: Date.now() }]);
         },
         onDone: () => {
-          setStreamingText((current) => {
-            if (current) {
-              setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: current, timestamp: Date.now() }]);
-            }
-            return "";
-          });
+          const text2 = streamingTextRef.current;
+          if (text2) {
+            setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: text2, timestamp: Date.now() }]);
+          }
+          streamingTextRef.current = "";
           setIsStreaming(false);
           setStatus("idle");
         }

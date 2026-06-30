@@ -311,7 +311,10 @@ def _run_agent(run_id: str, paper_title: str, original_text: str,
             for node_name, node_output in event.items():
                 _log(f"[Agent {run_id}] {node_name}")
 
-                msgs = node_output.get("messages", [])
+                if isinstance(node_output, dict):
+                    msgs = node_output.get("messages", [])
+                else:
+                    msgs = []
                 for msg in msgs:
                     # AIMessage with tool_calls
                     if isinstance(msg, AIMessage) and msg.tool_calls:

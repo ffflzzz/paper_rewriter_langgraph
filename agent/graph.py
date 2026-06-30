@@ -411,6 +411,8 @@ def generate_pdf(run_id: str = "") -> str:
             "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
             "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
             "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "C:\\Windows\\Fonts\\simhei.ttf",
+            "C:\\Windows\\Fonts\\msyh.ttc",
         ]
         for fp in candidates:
             if os.path.exists(fp):

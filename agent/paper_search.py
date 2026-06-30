@@ -348,13 +348,38 @@ def download_paper(paper_id: str, run_id: str, source: str = 'arxiv') -> dict:
             pdf_url = data.get('openAccessPdf', {}).get('url', '')
         except:
             pdf_url = ''
+    elif paper_id.startswith('10.') or source == 'crossref':
+        # DOI - try to resolve via CrossRef API
+        pdf_url = ''
+        try:
+            import urllib.parse
+            doi_url = f"https://api.crossref.org/works/{urllib.parse.quote(paper_id, safe='')}"
+            data = _fetch_json(doi_url, timeout=15)
+            # Try to get open-access PDF link
+            links = data.get('message', {}).get('link', [])
+            for link in links:
+                if link.get('content-type') == 'application/pdf':
+                    pdf_url = link.get('URL', '')
+                    break
+            # Fallback: try Unpaywall
+            if not pdf_url:
+                try:
+                    unpaywall_url = f"https://api.unpaywall.org/v2/{paper_id}?email=test@example.com"
+                    up_data = _fetch_json(unpaywall_url, timeout=10)
+                    best_oa = up_data.get('best_oa_location', {})
+                    if best_oa:
+                        pdf_url = best_oa.get('url_for_pdf') or best_oa.get('url', '')
+                except:
+                    pass
+        except Exception as e:
+            _log(f"DOI resolve error for {paper_id}: {e}")
     else:
         pdf_url = ''
     
     if not pdf_url:
         return {
             'success': False,
-            'message': f"无法获取PDF链接。请手动下载论文并上传PDF文件。",
+            'message': f"无法获取PDF链接（DOI: {paper_id}）。请手动下载论文并上传PDF文件。",
         }
     
     pdf_path = os.path.join(run_dir, f"{paper_id.replace('/', '_')}.pdf")

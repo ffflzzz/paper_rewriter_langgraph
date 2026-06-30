@@ -1,0 +1,2 @@
+{"ts": "2026-06-15T21:23:51.057286", "type": "run_start", "run_id": "1024e31a", "title": "test"}
+{"ts": "2026-06-15T21:23:51.058285", "type": "run_error", "run_id": "1024e31a", "error": "run_rewrite() got an unexpected keyword argument 'language'"}

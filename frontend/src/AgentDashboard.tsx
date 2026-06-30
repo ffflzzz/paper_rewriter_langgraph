@@ -79,7 +79,7 @@ function formatTime(ts: number): string {
 
 // ── 提取工具结果摘要 ──
 
-function extractResultSummary(name: string, result: any): string {
+function extractResultSummary(_name: string, result: any): string {
   if (!result) return '';
   if (typeof result === 'string') {
     // 尝试解析JSON

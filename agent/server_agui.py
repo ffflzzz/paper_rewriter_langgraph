@@ -233,7 +233,7 @@ async def get_graph():
         elif nid == "__end__":
             nodes.append({"id": nid, "label": "⏹ END", "type": "end", "desc": "任务完成"})
         elif nid == "agent":
-            nodes.append({"id": nid, "label": "🤖 Agent", "type": "process", "desc": "MiMo v2.5 Pro — 决定调用工具或回复用户"})
+            nodes.append({"id": nid, "label": "🤖 Agent", "type": "process", "desc": "Agnes 2.0 Flash — 决定调用工具或回复用户"})
         elif nid == "tools":
             # 展开tools节点为子工具
             from agent.graph import tools as tool_list
@@ -430,53 +430,62 @@ async def init_checkpointer():
     @app.post("/api/copilotkit")
     async def copilotkit_endpoint(request: Request):
         """AG-UI端点 — 兼容CopilotKit Runtime和直连两种格式"""
-        body = await request.json()
+        try:
+            body = await request.json()
 
-        # 处理info方法（CopilotKit Runtime查询agent信息）
-        if body.get("method") == "info":
-            return {
-                "version": "1.0.0",
-                "agents": {"paper_rewriter": {"name": "paper_rewriter", "description": "论文重写多Agent系统"}},
-            }
+            # 处理info方法（CopilotKit Runtime查询agent信息）
+            if body.get("method") == "info":
+                return {
+                    "version": "1.0.0",
+                    "agents": {"paper_rewriter": {"name": "paper_rewriter", "description": "论文重写多Agent系统"}},
+                }
 
-        # 处理connect/stop方法（CopilotKit Runtime管理连接）
-        if body.get("method") in ("agent/connect", "agent/stop"):
-            return {"status": "ok"}
+            # 处理connect/stop方法（CopilotKit Runtime管理连接）
+            if body.get("method") in ("agent/connect", "agent/stop"):
+                return {"status": "ok"}
 
-        # agent/run 方法或直连格式：解析为RunAgentInput
-        # CopilotKit Runtime格式: {method, params, threadId, runId, messages, ...}
-        # 直连AG-UI格式: {threadId, runId, state, messages, ...}
-        if "method" in body:
-            # 去掉method/params，剩下的就是RunAgentInput字段
-            inner = {k: v for k, v in body.items() if k not in ("method", "params")}
-        else:
-            inner = body
+            # agent/run 方法或直连格式：解析为RunAgentInput
+            if "method" in body:
+                inner = {k: v for k, v in body.items() if k not in ("method", "params")}
+            else:
+                inner = body
 
-        # 补默认值
-        if "state" not in inner:
-            inner["state"] = {}
-        if "tools" not in inner:
-            inner["tools"] = []
-        if "context" not in inner:
-            inner["context"] = []
-        if "forwardedProps" not in inner:
-            inner["forwardedProps"] = {}
 
-        input_data = RunAgentInput(**inner)
+            # 规范化 messages，确保每条消息都有 user.id（AG-UI schema 要求）
+            if "messages" in inner:
+                for msg in inner["messages"]:
+                    if isinstance(msg, dict) and "user" not in msg:
+                        msg["user"] = {"id": msg.get("id", "user")}
 
-        accept_header = request.headers.get("accept")
-        encoder = EventEncoder(accept=accept_header)
-        request_agent = _agui_agent.clone()
+            # 补默认值
+            if "state" not in inner:
+                inner["state"] = {}
+            if "tools" not in inner:
+                inner["tools"] = []
+            if "context" not in inner:
+                inner["context"] = []
+            if "forwardedProps" not in inner:
+                inner["forwardedProps"] = {}
 
-        async def event_generator():
-            async for event in request_agent.run(input_data):
-                yield encoder.encode(event)
+            input_data = RunAgentInput(**inner)
 
-        return StreamingResponse(
-            event_generator(),
-            media_type=encoder.get_content_type(),
-        )
+            accept_header = request.headers.get("accept")
+            encoder = EventEncoder(accept=accept_header)
+            request_agent = _agui_agent.clone()
 
+            async def event_generator():
+                async for event in request_agent.run(input_data):
+                    yield encoder.encode(event)
+
+            return StreamingResponse(
+                event_generator(),
+                media_type=encoder.get_content_type(),
+            )
+        except Exception as e:
+            import traceback
+            print(f"AGUI ERROR: {e}")
+            traceback.print_exc()
+            return JSONResponse(status_code=500, content={"error": str(e)})
     print(f"AG-UI initialized with AsyncSqliteSaver: {_db_path}")
 
     # 在AG-UI端点之后挂载静态文件，确保API路由优先级更高

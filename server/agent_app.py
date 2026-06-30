@@ -301,7 +301,7 @@ def _run_agent(run_id: str, paper_title: str, original_text: str,
         # 用stream逐步执行，实时推送事件
         for event in graph.stream(
             {"messages": [HumanMessage(content=first_message)]},
-            {"recursion_limit": max_tool_calls * 2},
+            {"configurable": {"thread_id": run_id}, "recursion_limit": max_tool_calls * 2},
             stream_mode="updates",
         ):
             if current_run["status"] == "stopped":

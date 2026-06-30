@@ -1318,7 +1318,7 @@ var require_react_development = __commonJS({
           }
           return false;
         }
-        function memo6(type, compare) {
+        function memo4(type, compare) {
           {
             if (!isValidElementType(type)) {
               error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
@@ -1374,11 +1374,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
-        function useReducer2(reducer2, initialArg, init) {
+        function useReducer(reducer, initialArg, init) {
           var dispatcher = resolveDispatcher();
-          return dispatcher.useReducer(reducer2, initialArg, init);
+          return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef3(initialValue) {
+        function useRef2(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -1394,7 +1394,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback3(callback, deps) {
+        function useCallback2(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
@@ -2158,10 +2158,10 @@ var require_react_development = __commonJS({
         exports.forwardRef = forwardRef2;
         exports.isValidElement = isValidElement;
         exports.lazy = lazy;
-        exports.memo = memo6;
+        exports.memo = memo4;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback3;
+        exports.useCallback = useCallback2;
         exports.useContext = useContext7;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
@@ -2171,8 +2171,8 @@ var require_react_development = __commonJS({
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect2;
         exports.useMemo = useMemo3;
-        exports.useReducer = useReducer2;
-        exports.useRef = useRef3;
+        exports.useReducer = useReducer;
+        exports.useRef = useRef2;
         exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -7931,7 +7931,7 @@ var require_react_reconciler_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment = 7;
+        var Fragment3 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -8071,7 +8071,7 @@ var require_react_reconciler_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment:
+            case Fragment3:
               return "Fragment";
             case HostComponent:
               return type;
@@ -11205,7 +11205,7 @@ var require_react_reconciler_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-            if (current2 === null || current2.tag !== Fragment) {
+            if (current2 === null || current2.tag !== Fragment3) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -11608,7 +11608,7 @@ var require_react_reconciler_development = __commonJS({
               if (child.key === key) {
                 var elementType = element.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment) {
+                  if (child.tag === Fragment3) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element.props.children);
                     existing.return = returnFiber;
@@ -12856,7 +12856,7 @@ var require_react_reconciler_development = __commonJS({
         function basicStateReducer(state, action) {
           return typeof action === "function" ? action(state) : action;
         }
-        function mountReducer(reducer2, initialArg, init) {
+        function mountReducer(reducer, initialArg, init) {
           var hook = mountWorkInProgressHook();
           var initialState;
           if (init !== void 0) {
@@ -12870,20 +12870,20 @@ var require_react_reconciler_development = __commonJS({
             interleaved: null,
             lanes: NoLanes,
             dispatch: null,
-            lastRenderedReducer: reducer2,
+            lastRenderedReducer: reducer,
             lastRenderedState: initialState
           };
           hook.queue = queue;
           var dispatch = queue.dispatch = dispatchReducerAction.bind(null, currentlyRenderingFiber$1, queue);
           return [hook.memoizedState, dispatch];
         }
-        function updateReducer(reducer2, initialArg, init) {
+        function updateReducer(reducer, initialArg, init) {
           var hook = updateWorkInProgressHook();
           var queue = hook.queue;
           if (queue === null) {
             throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
           }
-          queue.lastRenderedReducer = reducer2;
+          queue.lastRenderedReducer = reducer;
           var current2 = currentHook;
           var baseQueue = current2.baseQueue;
           var pendingQueue = queue.pending;
@@ -12945,7 +12945,7 @@ var require_react_reconciler_development = __commonJS({
                   newState = update.eagerState;
                 } else {
                   var action = update.action;
-                  newState = reducer2(newState, action);
+                  newState = reducer(newState, action);
                 }
               }
               update = update.next;
@@ -12978,13 +12978,13 @@ var require_react_reconciler_development = __commonJS({
           var dispatch = queue.dispatch;
           return [hook.memoizedState, dispatch];
         }
-        function rerenderReducer(reducer2, initialArg, init) {
+        function rerenderReducer(reducer, initialArg, init) {
           var hook = updateWorkInProgressHook();
           var queue = hook.queue;
           if (queue === null) {
             throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
           }
-          queue.lastRenderedReducer = reducer2;
+          queue.lastRenderedReducer = reducer;
           var dispatch = queue.dispatch;
           var lastRenderPhaseUpdate = queue.pending;
           var newState = hook.memoizedState;
@@ -12994,7 +12994,7 @@ var require_react_reconciler_development = __commonJS({
             var update = firstRenderPhaseUpdate;
             do {
               var action = update.action;
-              newState = reducer2(newState, action);
+              newState = reducer(newState, action);
               update = update.next;
             } while (update !== firstRenderPhaseUpdate);
             if (!objectIs(newState, hook.memoizedState)) {
@@ -13674,13 +13674,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               mountHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13778,13 +13778,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13882,13 +13882,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return updateReducer(reducer2, initialArg, init);
+                return updateReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -13986,13 +13986,13 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnRerenderInDEV;
               try {
-                return rerenderReducer(reducer2, initialArg, init);
+                return rerenderReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14098,14 +14098,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               mountHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
               try {
-                return mountReducer(reducer2, initialArg, init);
+                return mountReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14219,14 +14219,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return updateReducer(reducer2, initialArg, init);
+                return updateReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -14340,14 +14340,14 @@ var require_react_reconciler_development = __commonJS({
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
             },
-            useReducer: function(reducer2, initialArg, init) {
+            useReducer: function(reducer, initialArg, init) {
               currentHookNameInDev = "useReducer";
               warnInvalidHookAccess();
               updateHookTypesDev();
               var prevDispatcher = ReactCurrentDispatcher$1.current;
               ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
               try {
-                return rerenderReducer(reducer2, initialArg, init);
+                return rerenderReducer(reducer, initialArg, init);
               } finally {
                 ReactCurrentDispatcher$1.current = prevDispatcher;
               }
@@ -17099,7 +17099,7 @@ var require_react_reconciler_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment:
+            case Fragment3:
               return updateFragment(current2, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current2, workInProgress2, renderLanes2);
@@ -17536,7 +17536,7 @@ var require_react_reconciler_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment:
+            case Fragment3:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -22304,7 +22304,7 @@ var require_react_reconciler_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment, elements, key, mode);
+          var fiber = createFiber(Fragment3, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -33797,11 +33797,11 @@ var use_input_default = useInput;
 
 // node_modules/ink/build/hooks/use-app.js
 var import_react17 = __toESM(require_react(), 1);
+var useApp = () => (0, import_react17.useContext)(AppContext_default);
+var use_app_default = useApp;
 
 // node_modules/ink/build/hooks/use-stdout.js
 var import_react18 = __toESM(require_react(), 1);
-var useStdout = () => (0, import_react18.useContext)(StdoutContext_default);
-var use_stdout_default = useStdout;
 
 // node_modules/ink/build/hooks/use-stderr.js
 var import_react19 = __toESM(require_react(), 1);
@@ -33815,259 +33815,34 @@ var import_react21 = __toESM(require_react(), 1);
 // src/App.tsx
 var import_react27 = __toESM(require_react(), 1);
 
-// src/components/ComposerInput.tsx
-var import_react22 = __toESM(require_react(), 1);
-
 // src/lib/theme.ts
 var theme = {
   /** Bright green — primary text, highlights, prompt */
-  green: "#00ff00",
+  green: "green",
   /** Dim green — secondary text, borders, separators */
   dimGreen: "#008800",
   /** Dark green — background accents */
   darkGreen: "#004400",
+  /** Burgundy — fixed components (status bar, separators, headers) */
+  burgundy: "magenta",
+  /** Dim burgundy — secondary fixed elements */
+  dimBurgundy: "#993355",
   /** Red — errors, warnings */
-  red: "#ff3333",
+  red: "red",
   /** Yellow — tool calls, info */
-  yellow: "#cccc00",
+  yellow: "yellow",
+  /** Orange — user messages, highlights */
+  orange: "#ff8800",
   /** Cyan — user input echo */
-  cyan: "#00cccc",
+  cyan: "cyan",
   /** White — emphasis */
-  white: "#ffffff",
+  white: "white",
   /** Dim white — secondary info */
   dimWhite: "#888888"
 };
 
-// src/components/ComposerInput.tsx
-var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var ComposerInput = (0, import_react22.memo)(function ComposerInput2({ onSubmit, disabled }) {
-  const [input, setInput] = (0, import_react22.useState)("");
-  use_input_default(
-    (char, key) => {
-      if (disabled) return;
-      if (key.return) {
-        const trimmed = input.trim();
-        if (trimmed) {
-          onSubmit(trimmed);
-          setInput("");
-        }
-        return;
-      }
-      if (key.backspace || key.delete) {
-        setInput((prev) => prev.slice(0, -1));
-        return;
-      }
-      if (key.ctrl && char === "c") {
-        process.exit(0);
-        return;
-      }
-      if (char && !key.ctrl && !key.meta) {
-        setInput((prev) => prev + char);
-      }
-    },
-    { isActive: true }
-  );
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { width: "100%", paddingLeft: 1, paddingRight: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Text, { color: disabled ? theme.dimGreen : theme.green, bold: true, children: [
-      "\u25B8",
-      " "
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: disabled ? theme.dimGreen : theme.white, children: disabled ? "waiting\u2026" : input || "" }),
-    !disabled && input.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: theme.dimGreen, children: " type a message\u2026" })
-  ] });
-});
-
-// src/components/HitlPrompt.tsx
-var import_react23 = __toESM(require_react(), 1);
-var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-var HitlPrompt = (0, import_react23.memo)(function HitlPrompt2({ prompt, onAnswer }) {
-  use_input_default((input, key) => {
-    if (key.return || input === "y") {
-      onAnswer("y");
-    } else if (input === "n") {
-      onAnswer("n");
-    } else if (input === "s") {
-      onAnswer("skip");
-    }
-  });
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-    Box_default,
-    {
-      flexDirection: "column",
-      borderStyle: "round",
-      borderColor: theme.yellow,
-      paddingLeft: 1,
-      paddingRight: 1,
-      marginTop: 1,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.yellow, bold: true, children: "\u26A1 HITL Confirmation" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.white, children: prompt.message }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { marginTop: 1, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.green, bold: true, children: "[y]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "es " }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.red, bold: true, children: "[n]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "o " }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimWhite, bold: true, children: "[s]" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimGreen, children: "kip" })
-        ] })
-      ]
-    }
-  );
-});
-
-// src/components/StatusBar.tsx
-var import_react24 = __toESM(require_react(), 1);
-var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-var StatusBar = (0, import_react24.memo)(function StatusBar2({
-  sessionId,
-  status,
-  toolCallCount,
-  turnCount
-}) {
-  const statusColor = status === "streaming" ? theme.green : status === "error" ? theme.red : status === "idle" ? theme.dimGreen : theme.dimWhite;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-    Box_default,
-    {
-      width: "100%",
-      paddingLeft: 1,
-      paddingRight: 1,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: "\u25B8 " }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: statusColor, children: status }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.dimGreen, children: " ".repeat(Math.max(1, 40 - status.length)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
-          "tools:",
-          toolCallCount,
-          " \u2502 turns:",
-          turnCount,
-          " \u2502 ",
-          sessionId
-        ] })
-      ]
-    }
-  );
-});
-
-// src/components/ToolCallCards.tsx
-var import_react25 = __toESM(require_react(), 1);
-var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-var ToolCallCards = (0, import_react25.memo)(function ToolCallCards2({ toolCalls }) {
-  if (toolCalls.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { flexDirection: "column", marginTop: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: tc.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        tc.status === "running" ? "\u23F3" : "\u2705"
-      ] })
-    ] }),
-    tc.args && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, dimColor: true, children: tc.args.length > 80 ? tc.args.slice(0, 80) + "\u2026" : tc.args }) }),
-    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text, { color: theme.dimGreen, children: [
-      "\u2192 ",
-      tc.result.length > 120 ? tc.result.slice(0, 120) + "\u2026" : tc.result
-    ] }) })
-  ] }, tc.id)) });
-});
-
-// src/components/TranscriptPane.tsx
-var import_react26 = __toESM(require_react(), 1);
-var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
-function messageColor(role) {
-  switch (role) {
-    case "user":
-      return theme.cyan;
-    case "assistant":
-      return theme.green;
-    case "system":
-      return theme.dimGreen;
-    case "tool":
-      return theme.yellow;
-    default:
-      return theme.dimWhite;
-  }
-}
-function messagePrefix(role) {
-  switch (role) {
-    case "user":
-      return "\u25B8 ";
-    case "assistant":
-      return "\u2502 ";
-    case "system":
-      return "\u25E6 ";
-    case "tool":
-      return "\u2699 ";
-    default:
-      return "  ";
-  }
-}
-function wrapText2(text, width) {
-  if (!text) return [""];
-  const lines = [];
-  for (const paragraph of text.split("\n")) {
-    if (!paragraph) {
-      lines.push("");
-      continue;
-    }
-    const words = paragraph.split(/\s+/);
-    let current = "";
-    for (const word of words) {
-      if (current && current.length + 1 + word.length > width) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = current ? `${current} ${word}` : word;
-      }
-    }
-    if (current) lines.push(current);
-  }
-  return lines.length ? lines : [""];
-}
-var TranscriptPane = (0, import_react26.memo)(function TranscriptPane2({
-  messages,
-  streamingText,
-  isStreaming
-}) {
-  const containerRef = (0, import_react26.useRef)(null);
-  (0, import_react26.useEffect)(() => {
-  }, [messages.length, streamingText]);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, paddingLeft: 1, paddingRight: 1, children: [
-    messages.map((msg, idx) => {
-      const prefix = messagePrefix(msg.role);
-      const color = messageColor(msg.role);
-      const wrapped = wrapText2(msg.content, 80);
-      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
-        msg.role === "user" && idx > 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(40) }) }),
-        msg.role === "tool" && msg.toolName ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.yellow, children: "\u{1F527} " }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.yellow, bold: true, children: msg.toolName })
-          ] }),
-          msg.content && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: msg.content.length > 200 ? msg.content.slice(0, 200) + "\u2026" : msg.content }) })
-        ] }) : wrapped.map((line, lineIdx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: lineIdx === 0 ? theme.dimGreen : theme.dimGreen, children: lineIdx === 0 ? prefix : "\u2502 " }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color, children: line })
-        ] }, lineIdx))
-      ] }, msg.id);
-    }),
-    isStreaming && streamingText && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { flexDirection: "column", children: wrapText2(streamingText, 80).map((line, lineIdx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: lineIdx === 0 ? "\u2502 " : "\u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: line })
-    ] }, lineIdx)) }),
-    isStreaming && !streamingText && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "\u2502 " }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258B" })
-    ] })
-  ] });
-});
-
 // src/lib/agui-client.ts
 var BASE_URL = process.env.AGUI_URL || "http://localhost:8765";
-async function fetchStatus() {
-  const res = await fetch(`${BASE_URL}/api/status`);
-  if (!res.ok) throw new Error(`status failed: ${res.status}`);
-  return res.json();
-}
 function runAgent(messages, threadId, runId, callbacks) {
   const controller = new AbortController();
   const body = {
@@ -34143,429 +33918,860 @@ function runAgent(messages, threadId, runId, callbacks) {
   return () => controller.abort();
 }
 
-// src/App.tsx
-var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
-function genId() {
-  return Math.random().toString(36).slice(2, 10);
+// src/lib/config.ts
+import { readFileSync as readFileSync2, writeFileSync, mkdirSync, existsSync as existsSync2 } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+var CONFIG_DIR = join(homedir(), ".rewriter");
+var CONFIG_FILE = join(CONFIG_DIR, "config.json");
+var PROVIDERS = {
+  "mimo": {
+    name: "MiMo (\u5C0F\u7C73)",
+    baseUrl: "https://token-plan-cn.xiaomimimo.com/v1",
+    models: ["mimo-v2.5-pro", "mimo-v2-flash"],
+    envKey: "MIMO_API_KEY"
+  },
+  "anthropic": {
+    name: "Anthropic",
+    baseUrl: "https://api.anthropic.com/v1",
+    models: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+    envKey: "ANTHROPIC_API_KEY"
+  },
+  "openai-codex": {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini"],
+    envKey: "OPENAI_API_KEY"
+  },
+  "openrouter": {
+    name: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    models: ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o", "google/gemini-2.0-flash"],
+    envKey: "OPENROUTER_API_KEY"
+  },
+  "nous": {
+    name: "Nous Portal",
+    baseUrl: "https://api.nousresearch.com/v1",
+    models: ["hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b"],
+    envKey: "NOUS_API_KEY"
+  },
+  "zai": {
+    name: "z.ai (\u667A\u8C31 GLM)",
+    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+    models: ["glm-4-plus", "glm-4-flash"],
+    envKey: "GLM_API_KEY"
+  },
+  "kimi-coding": {
+    name: "Kimi (\u6708\u4E4B\u6697\u9762)",
+    baseUrl: "https://api.moonshot.cn/v1",
+    models: ["moonshot-v1-128k", "moonshot-v1-32k"],
+    envKey: "KIMI_API_KEY"
+  },
+  "minimax": {
+    name: "MiniMax",
+    baseUrl: "https://api.minimax.chat/v1",
+    models: ["abab6.5s-chat", "abab6.5-chat"],
+    envKey: "MINIMAX_API_KEY"
+  },
+  "minimax-cn": {
+    name: "MiniMax (\u56FD\u5185)",
+    baseUrl: "https://api.minimax.chat/v1",
+    models: ["abab6.5s-chat", "abab6.5-chat"],
+    envKey: "MINIMAX_CN_API_KEY"
+  },
+  "deepseek": {
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/v1",
+    models: ["deepseek-chat", "deepseek-reasoner"],
+    envKey: "DEEPSEEK_API_KEY"
+  },
+  "agnes-ai": {
+    name: "Agnes AI",
+    baseUrl: "https://apihub.agnes-ai.com/v1",
+    models: ["Agnes-2.0-Flash"],
+    envKey: "AGNES_API_KEY"
+  },
+  "custom": {
+    name: "Custom (OpenAI\u517C\u5BB9)",
+    baseUrl: "",
+    models: [],
+    envKey: "CUSTOM_API_KEY"
+  }
+};
+function loadConfig() {
+  try {
+    if (!existsSync2(CONFIG_FILE)) return null;
+    const raw = readFileSync2(CONFIG_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
-function genSessionId() {
-  return `tui-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+function saveConfig(config) {
+  if (!existsSync2(CONFIG_DIR)) {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
 }
-function createInitialState() {
-  return {
-    messages: [],
-    streamingText: "",
-    isStreaming: false,
-    toolCalls: [],
-    hitlPrompt: null,
-    sessionId: genSessionId(),
-    status: "idle",
-    toolCallCount: 0,
-    turnCount: 0,
-    threadId: genId(),
-    error: null
-  };
-}
-function reducer(state, action) {
-  switch (action.type) {
-    case "ADD_MESSAGE":
-      return {
-        ...state,
-        messages: [...state.messages, action.message]
-      };
-    case "SET_STREAMING":
-      return {
-        ...state,
-        isStreaming: true,
-        streamingText: action.text,
-        status: "streaming"
-      };
-    case "APPEND_STREAMING":
-      return {
-        ...state,
-        streamingText: state.streamingText + action.delta
-      };
-    case "STOP_STREAMING": {
-      const msgs = state.streamingText ? [
-        ...state.messages,
-        {
-          id: genId(),
-          role: "assistant",
-          content: state.streamingText,
-          timestamp: Date.now()
-        }
-      ] : state.messages;
-      return {
-        ...state,
-        messages: msgs,
-        isStreaming: false,
-        streamingText: "",
-        status: "idle"
-      };
+
+// src/components/TranscriptPane.tsx
+var import_react22 = __toESM(require_react(), 1);
+
+// src/lib/utils.ts
+function wrapText2(text, width) {
+  if (!text) return [""];
+  const lines = [];
+  const paragraphs = text.split("\n");
+  for (const para of paragraphs) {
+    if (para.length === 0) {
+      lines.push("");
+      continue;
     }
-    case "CLEAR_STREAMING":
-      return { ...state, isStreaming: false, streamingText: "" };
-    case "TOOL_CALL_START":
-      return {
-        ...state,
-        toolCalls: [...state.toolCalls, action.toolCall],
-        toolCallCount: state.toolCallCount + 1
-      };
-    case "TOOL_CALL_UPDATE":
-      return {
-        ...state,
-        toolCalls: state.toolCalls.map(
-          (tc) => tc.id === action.id ? { ...tc, args: tc.args + action.args } : tc
-        )
-      };
-    case "TOOL_CALL_END":
-      return {
-        ...state,
-        toolCalls: state.toolCalls.map(
-          (tc) => tc.id === action.id ? { ...tc, status: "done", result: action.result ?? tc.result } : tc
-        )
-      };
-    case "SET_HITL":
-      return { ...state, hitlPrompt: action.prompt };
-    case "SET_STATUS":
-      return { ...state, status: action.status };
-    case "SET_ERROR":
-      return { ...state, error: action.error, status: "error" };
-    case "INCREMENT_TURN":
-      return { ...state, turnCount: state.turnCount + 1 };
-    case "NEW_SESSION": {
-      const newId = genSessionId();
-      return {
-        ...createInitialState(),
-        sessionId: newId,
-        messages: [
-          {
-            id: genId(),
-            role: "system",
-            content: `New session: ${newId}`,
-            timestamp: Date.now()
-          }
-        ]
-      };
+    let remaining = para;
+    while (remaining.length > 0) {
+      if (remaining.length <= width) {
+        lines.push(remaining);
+        break;
+      }
+      let breakAt = remaining.lastIndexOf(" ", width);
+      if (breakAt <= 0) breakAt = width;
+      lines.push(remaining.slice(0, breakAt));
+      remaining = remaining.slice(breakAt).trimStart();
     }
-    default:
-      return state;
   }
+  return lines.length > 0 ? lines : [""];
 }
-function handleCommand(cmd, state, dispatch) {
-  const lower = cmd.toLowerCase().trim();
-  if (lower === "/quit" || lower === "/exit") {
-    process.exit(0);
-  }
-  if (lower === "/help") {
-    dispatch({
-      type: "ADD_MESSAGE",
-      message: {
-        id: genId(),
-        role: "system",
-        content: "Commands:\n  /help    \u2014 Show this help\n  /new     \u2014 New session\n  /status  \u2014 Show session status\n  /clear   \u2014 Clear transcript\n  /quit    \u2014 Exit TUI",
-        timestamp: Date.now()
-      }
-    });
-    return true;
-  }
-  if (lower === "/new") {
-    dispatch({ type: "NEW_SESSION" });
-    return true;
-  }
-  if (lower === "/status") {
-    dispatch({
-      type: "ADD_MESSAGE",
-      message: {
-        id: genId(),
-        role: "system",
-        content: [
-          `Session  : ${state.sessionId}`,
-          `Thread   : ${state.threadId}`,
-          `Messages : ${state.messages.length}`,
-          `Tool calls: ${state.toolCallCount}`,
-          `Turns    : ${state.turnCount}`,
-          `Status   : ${state.status}`
-        ].join("\n"),
-        timestamp: Date.now()
-      }
-    });
-    return true;
-  }
-  if (lower === "/clear") {
-    dispatch({ type: "NEW_SESSION" });
-    return true;
-  }
-  return false;
+
+// src/components/TranscriptPane.tsx
+var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
+function messagePrefix(role) {
+  if (role === "user") return "\u25CF ";
+  if (role === "assistant") return "\u2502 ";
+  if (role === "tool") return "\u{1F527} ";
+  return "  ";
 }
-function App2() {
-  const [state, dispatch] = (0, import_react27.useReducer)(reducer, null, createInitialState);
-  const abortRef = (0, import_react27.useRef)(null);
-  const [connected, setConnected] = (0, import_react27.useState)(false);
-  const { stdout } = use_stdout_default();
-  (0, import_react27.useEffect)(() => {
-    stdout.write("\x1B[?1049h");
-    stdout.write("\x1B[?25l");
-    fetchStatus().then(() => {
-      setConnected(true);
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "system",
-          content: "\u{1F4DD} PAPER REWRITER \u2014 TypeScript Ink TUI\nConnected to AG-UI backend at localhost:8765\nType your message to chat. Commands: /help \xB7 /new \xB7 /status \xB7 /quit",
-          timestamp: Date.now()
-        }
-      });
-    }).catch(() => {
-      setConnected(false);
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "system",
-          content: "\u{1F4DD} PAPER REWRITER \u2014 TypeScript Ink TUI\n\u26A0 Backend not reachable at localhost:8765\nStart the backend: cd /home/lex/paper_rewriter_langgraph && python3 -m agent.server_agui\nCommands: /help \xB7 /new \xB7 /status \xB7 /quit",
-          timestamp: Date.now()
-        }
-      });
-    });
-    return () => {
-      stdout.write("\x1B[?25h");
-      stdout.write("\x1B[?1049l");
-    };
-  }, []);
-  const handleEvent = (0, import_react27.useCallback)(
-    (event) => {
-      switch (event.type) {
-        case "RUN_STARTED":
-          dispatch({ type: "SET_STATUS", status: "streaming" });
-          break;
-        case "TEXT_MESSAGE_START":
-          dispatch({ type: "SET_STREAMING", text: "" });
-          break;
-        case "TEXT_MESSAGE_CONTENT":
-          if (event.delta) {
-            dispatch({ type: "APPEND_STREAMING", delta: event.delta });
-          }
-          break;
-        case "TEXT_MESSAGE_END":
-          dispatch({ type: "STOP_STREAMING" });
-          dispatch({ type: "INCREMENT_TURN" });
-          break;
-        case "TOOL_CALL_START":
-          dispatch({
-            type: "TOOL_CALL_START",
-            toolCall: {
-              id: event.toolCallId || genId(),
-              name: event.toolCallName || event.name || "unknown",
-              args: "",
-              status: "running"
-            }
-          });
-          break;
-        case "TOOL_CALL_ARGS":
-          if (event.toolCallId && event.delta) {
-            dispatch({
-              type: "TOOL_CALL_UPDATE",
-              id: event.toolCallId,
-              args: event.delta
-            });
-          }
-          break;
-        case "TOOL_CALL_END":
-          dispatch({
-            type: "TOOL_CALL_END",
-            id: event.toolCallId || ""
-          });
-          break;
-        case "RUN_FINISHED":
-          dispatch({ type: "SET_STATUS", status: "idle" });
-          if (state.isStreaming && state.streamingText) {
-            dispatch({ type: "STOP_STREAMING" });
-          }
-          setTimeout(() => {
-            dispatch({ type: "CLEAR_STREAMING" });
-          }, 100);
-          break;
-        case "RUN_ERROR":
-          dispatch({
-            type: "SET_ERROR",
-            error: event.error || "Unknown error"
-          });
-          dispatch({ type: "CLEAR_STREAMING" });
-          break;
-        case "STATE_SNAPSHOT":
-        case "STATE_DELTA":
-        case "MESSAGES_SNAPSHOT":
-          break;
-        case "STEP_STARTED":
-        case "STEP_FINISHED":
-          break;
-        case "CUSTOM":
-          break;
-        default:
-          break;
+function messageColor(role) {
+  if (role === "user") return theme.orange;
+  if (role === "assistant") return theme.green;
+  if (role === "tool") return theme.yellow;
+  return theme.dimGreen;
+}
+function getRows() {
+  try {
+    if (process.stdout.rows && process.stdout.rows > 0) return process.stdout.rows;
+  } catch {
+  }
+  try {
+    const lines = parseInt(process.env.LINES || "0", 10);
+    if (lines > 0) return lines;
+  } catch {
+  }
+  return 24;
+}
+var TranscriptPane = (0, import_react22.memo)(function TranscriptPane2({
+  messages,
+  streamingText,
+  isStreaming
+}) {
+  const contentLines = [];
+  for (const msg of messages) {
+    if (msg.role === "tool" && msg.toolName) {
+      contentLines.push({ key: `${msg.id}-tool`, prefix: "", text: `\u{1F527} ${msg.toolName}`, color: theme.yellow });
+      if (msg.content) {
+        const preview = msg.content.length > 120 ? msg.content.slice(0, 120) + "\u2026" : msg.content;
+        contentLines.push({ key: `${msg.id}-result`, prefix: "   ", text: preview, color: theme.dimGreen });
       }
-    },
-    [state.isStreaming, state.streamingText]
-  );
-  const handleSendMessage = (0, import_react27.useCallback)(
-    (text) => {
-      if (text.startsWith("/")) {
-        handleCommand(text, state, dispatch);
-        return;
-      }
-      if (!connected) {
-        dispatch({
-          type: "ADD_MESSAGE",
-          message: {
-            id: genId(),
-            role: "system",
-            content: "\u26A0 Not connected to backend. Start the Python server first.",
-            timestamp: Date.now()
-          }
+    } else {
+      const wrapped = wrapText2(msg.content, 80);
+      for (let i = 0; i < wrapped.length; i++) {
+        const prefix = i === 0 ? messagePrefix(msg.role) : "\u2502 ";
+        contentLines.push({
+          key: `${msg.id}-${i}`,
+          prefix,
+          text: wrapped[i],
+          color: messageColor(msg.role),
+          prefixColor: msg.role === "user" ? theme.orange : void 0
         });
-        return;
       }
-      if (abortRef.current) {
-        abortRef.current();
-        abortRef.current = null;
-      }
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "user",
-          content: text,
-          timestamp: Date.now()
-        }
-      });
-      dispatch({ type: "SET_STATUS", status: "sending" });
-      const agMessages = state.messages.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content
-      })).concat([{ id: genId(), role: "user", content: text }]);
-      const runId = genId();
-      abortRef.current = runAgent(agMessages, state.threadId, runId, {
-        onEvent: handleEvent,
-        onError: (err) => {
-          dispatch({ type: "SET_ERROR", error: err.message });
-          dispatch({ type: "CLEAR_STREAMING" });
-        },
-        onDone: () => {
-          if (state.isStreaming) {
-            dispatch({ type: "STOP_STREAMING" });
-          }
-          dispatch({ type: "SET_STATUS", status: "idle" });
-        }
-      });
-    },
-    [state, connected, handleEvent]
-  );
-  const handleHitlAnswer = (0, import_react27.useCallback)((answer) => {
-    dispatch({ type: "SET_HITL", prompt: null });
-    setTimeout(() => {
-      dispatch({
-        type: "ADD_MESSAGE",
-        message: {
-          id: genId(),
-          role: "user",
-          content: answer,
-          timestamp: Date.now()
-        }
-      });
-      const agMessages = [
-        { id: genId(), role: "user", content: answer }
-      ];
-      dispatch({ type: "SET_STATUS", status: "sending" });
-      const runId = genId();
-      abortRef.current = runAgent(agMessages, state.threadId, runId, {
-        onEvent: handleEvent,
-        onError: (err) => {
-          dispatch({ type: "SET_ERROR", error: err.message });
-          dispatch({ type: "CLEAR_STREAMING" });
-        },
-        onDone: () => {
-          dispatch({ type: "SET_STATUS", status: "idle" });
-        }
-      });
-    }, 0);
-  }, [state.threadId, handleEvent]);
-  use_input_default((input, key) => {
-    if (key.ctrl && input === "c") {
-      if (abortRef.current) abortRef.current();
-      process.exit(0);
     }
-    if (key.ctrl && input === "l") {
-      dispatch({ type: "NEW_SESSION" });
+    if (msg.role === "user") {
+      contentLines.push({ key: `${msg.id}-sep`, prefix: "", text: "\u2500\u2500\u2500", color: theme.dimGreen });
+    }
+  }
+  if (isStreaming && streamingText) {
+    const wrapped = wrapText2(streamingText, 80);
+    for (let i = 0; i < wrapped.length; i++) {
+      contentLines.push({ key: `streaming-${i}`, prefix: "\u2502 ", text: wrapped[i], color: theme.green });
+    }
+  }
+  const rows = getRows();
+  const reserved = 5;
+  const maxVisibleLines = Math.max(5, rows - reserved);
+  const visibleLines = contentLines.slice(-maxVisibleLines);
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, paddingRight: 1, children: visibleLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Box_default, { children: [
+    line.prefix && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.prefixColor || theme.dimGreen, children: line.prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Text, { color: line.color, children: line.text })
+  ] }, line.key)) });
+});
+
+// src/components/StatusBar.tsx
+var import_react23 = __toESM(require_react(), 1);
+var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+var SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
+function StatusBar({ status, toolCount, turnCount, sessionId, model = "mimo-v2.5-pro", startedAt, tokenCount = 0, maxTokens = 128e3 }) {
+  const [tick, setTick] = (0, import_react23.useState)(0);
+  const [spinnerIdx, setSpinnerIdx] = (0, import_react23.useState)(0);
+  (0, import_react23.useEffect)(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 1e3);
+    return () => clearInterval(timer);
+  }, []);
+  (0, import_react23.useEffect)(() => {
+    if (status !== "streaming") return;
+    const timer = setInterval(() => {
+      setSpinnerIdx((i) => (i + 1) % SPINNER_FRAMES.length);
+    }, 80);
+    return () => clearInterval(timer);
+  }, [status]);
+  const elapsed = startedAt ? (() => {
+    const mins = Math.floor((Date.now() - startedAt) / 6e4);
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return hrs > 0 ? `${hrs}h ${m}m` : `${m}m`;
+  })() : "0m";
+  const ctxPct = maxTokens > 0 ? Math.round(tokenCount / maxTokens * 100) : 0;
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Box_default, { paddingX: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.burgundy, children: "\u2695 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: model }),
+    status !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+      status === "streaming" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.burgundy, children: [
+        SPINNER_FRAMES[spinnerIdx],
+        " "
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: status })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimBurgundy, children: [
+      "\u2699 ",
+      toolCount
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: elapsed }),
+    tokenCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Text, { color: theme.dimBurgundy, children: " \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Text, { color: theme.dimBurgundy, children: [
+        "ctx ",
+        ctxPct,
+        "%"
+      ] })
+    ] })
+  ] });
+}
+
+// src/components/ToolCallCards.tsx
+var import_react24 = __toESM(require_react(), 1);
+var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+var TOOL_NAMES = {
+  "search_paper": "\u641C\u7D22\u8BBA\u6587",
+  "download_paper": "\u4E0B\u8F7D\u8BBA\u6587",
+  "read_original_segment": "\u8BFB\u53D6\u539F\u6587",
+  "write_chapter": "\u5199\u7AE0\u8282",
+  "read_chapter": "\u8BFB\u53D6\u7AE0\u8282",
+  "list_chapters": "\u5217\u51FA\u7AE0\u8282",
+  "self_review_chapter": "\u81EA\u5BA1\u7AE0\u8282",
+  "save_outline": "\u4FDD\u5B58\u5927\u7EB2",
+  "generate_pdf": "\u751F\u6210PDF",
+  "search_original": "\u641C\u7D22\u539F\u6587"
+};
+var TOOL_ICONS = {
+  "search_paper": "\u{1F50D}",
+  "download_paper": "\u{1F4E5}",
+  "read_original_segment": "\u{1F4D6}",
+  "write_chapter": "\u270D\uFE0F",
+  "read_chapter": "\u{1F4D6}",
+  "list_chapters": "\u{1F4CB}",
+  "self_review_chapter": "\u{1F50D}",
+  "save_outline": "\u{1F4DD}",
+  "generate_pdf": "\u{1F4C4}",
+  "search_original": "\u{1F50D}"
+};
+function formatArgs(args) {
+  try {
+    const parsed = JSON.parse(args);
+    const parts = [];
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "string" && v.length > 60) {
+        parts.push(`${k}="${v.slice(0, 60)}\u2026"`);
+      } else {
+        parts.push(`${k}=${JSON.stringify(v)}`);
+      }
+    }
+    return parts.join(", ");
+  } catch {
+    return args.length > 80 ? args.slice(0, 80) + "\u2026" : args;
+  }
+}
+function formatDuration(startMs) {
+  const elapsed = Date.now() - startMs;
+  if (elapsed < 1e3) return `${elapsed}ms`;
+  return `${(elapsed / 1e3).toFixed(1)}s`;
+}
+var ToolCallCards = (0, import_react24.memo)(function ToolCallCards2({ toolCalls }) {
+  if (toolCalls.length === 0) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { flexDirection: "column", paddingLeft: 1, children: toolCalls.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { flexDirection: "column", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: tc.status === "running" ? theme.yellow : theme.green, children: [
+        tc.status === "running" ? "\u23F3" : "\u2705",
+        " ",
+        TOOL_ICONS[tc.name] || "\u{1F527}",
+        " ",
+        TOOL_NAMES[tc.name] || tc.name
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+        " (",
+        tc.name,
+        ")"
+      ] }),
+      tc.startedAt && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+        " \xB7 ",
+        formatDuration(tc.startedAt)
+      ] })
+    ] }),
+    tc.args && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Text, { color: theme.dimGreen, children: [
+      "\u25B8 ",
+      formatArgs(tc.args)
+    ] }) }),
+    tc.status === "done" && tc.result && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Box_default, { paddingLeft: 3, flexDirection: "column", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Text, { color: theme.green, children: tc.result.length > 300 ? tc.result.slice(0, 300) + "\u2026" : tc.result }) })
+  ] }, tc.id)) });
+});
+
+// src/components/HitlPrompt.tsx
+var import_react25 = __toESM(require_react(), 1);
+var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+var HitlPrompt = (0, import_react25.memo)(function HitlPrompt2({ prompt, onAnswer }) {
+  use_input_default((input, key) => {
+    if (key.return || input === "y") {
+      onAnswer("y");
+    } else if (input === "n") {
+      onAnswer("n");
+    } else if (input === "s") {
+      onAnswer("skip");
     }
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", width: "100%", height: "100%", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { paddingLeft: 1, paddingRight: 1, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.green, bold: true, children: [
-        " ",
-        "\u{1F4DD} PAPER REWRITER",
-        " "
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2502" }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "Session:",
-        " "
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, children: state.sessionId }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "\u2502",
-        " ",
-        "tools:",
-        state.toolCallCount,
-        " ",
-        "\u2502",
-        " ",
-        "turns:",
-        state.turnCount
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.dimGreen, children: [
-        " ",
-        "\u2502",
-        " "
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: connected ? theme.green : theme.red, children: connected ? "\u25CF connected" : "\u25CB disconnected" })
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { flexDirection: "column", paddingLeft: 1, marginTop: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, children: "\u26A0 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.yellow, bold: true, children: "CONFIRM" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.white, children: prompt.toolName || "action" }),
+      prompt.message && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: " \u2502 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: prompt.message.length > 80 ? prompt.message.slice(0, 80) + "\u2026" : prompt.message })
+      ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(80) }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      TranscriptPane,
-      {
-        messages: state.messages,
-        streamingText: state.streamingText,
-        isStreaming: state.isStreaming
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Box_default, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.green, children: "y" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "/yes \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.red, children: "n" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimGreen, children: "/no \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text, { color: theme.dimWhite, children: "skip" })
+    ] })
+  ] });
+});
+
+// src/components/SetupWizard.tsx
+var import_react26 = __toESM(require_react(), 1);
+var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+function SetupWizard({ onComplete }) {
+  const [step, setStep] = (0, import_react26.useState)("provider");
+  const [providerIdx, setProviderIdx] = (0, import_react26.useState)(0);
+  const [apiKey, setApiKey] = (0, import_react26.useState)("");
+  const [modelIdx, setModelIdx] = (0, import_react26.useState)(0);
+  const [baseUrl, setBaseUrl] = (0, import_react26.useState)("");
+  const [customUrl, setCustomUrl] = (0, import_react26.useState)("");
+  const providerKeys = Object.keys(PROVIDERS);
+  const currentProvider = PROVIDERS[providerKeys[providerIdx]];
+  const models = currentProvider.models;
+  use_input_default((input, key) => {
+    if (step === "provider") {
+      if (key.upArrow) setProviderIdx((i) => Math.max(0, i - 1));
+      if (key.downArrow) setProviderIdx((i) => Math.min(providerKeys.length - 1, i + 1));
+      if (key.return) {
+        if (providerKeys[providerIdx] === "custom") {
+          setStep("apikey");
+          setBaseUrl("");
+        } else {
+          setBaseUrl(currentProvider.baseUrl);
+          setStep("apikey");
+        }
       }
-    ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls: state.toolCalls }),
-    state.hitlPrompt && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: state.hitlPrompt, onAnswer: handleHitlAnswer }),
-    state.error && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { paddingLeft: 1, paddingRight: 1, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Text, { color: theme.red, children: [
-      "\u26A0 ",
-      state.error
-    ] }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u2500".repeat(80) }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      ComposerInput,
-      {
-        onSubmit: handleSendMessage,
-        disabled: state.isStreaming
+      return;
+    }
+    if (step === "apikey") {
+      if (key.return) {
+        if (apiKey.length > 0) {
+          if (providerKeys[providerIdx] === "custom") {
+            setStep("model");
+          } else if (models.length === 1) {
+            const config = {
+              provider: providerKeys[providerIdx],
+              baseUrl,
+              apiKey,
+              model: models[0]
+            };
+            saveConfig(config);
+            onComplete(config);
+          } else {
+            setStep("model");
+          }
+        }
+        return;
       }
-    ),
+      if (key.backspace || key.delete) {
+        setApiKey((prev) => prev.slice(0, -1));
+        return;
+      }
+      if (input && !key.ctrl && !key.meta) {
+        setApiKey((prev) => prev + input);
+      }
+      return;
+    }
+    if (step === "model") {
+      if (key.upArrow) setModelIdx((i) => Math.max(0, i - 1));
+      if (key.downArrow) setModelIdx((i) => Math.min(models.length - 1, i + 1));
+      if (key.return) {
+        const config = {
+          provider: providerKeys[providerIdx],
+          baseUrl,
+          apiKey,
+          model: models[modelIdx]
+        };
+        saveConfig(config);
+        onComplete(config);
+      }
+      return;
+    }
+  });
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", padding: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, bold: true, children: "\u{1F4DD} Paper Rewriter \u2014 Setup" }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2550".repeat(50) }) }),
+    step === "provider" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Select model provider:" }) }),
+      providerKeys.map((key, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 2, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: idx === providerIdx ? theme.green : theme.dimGreen, children: [
+        idx === providerIdx ? "\u25B8 " : "  ",
+        PROVIDERS[key].name,
+        key === "mimo" ? " (default)" : ""
+      ] }) }, key)),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2191\u2193 to select, Enter to confirm" }) })
+    ] }),
+    step === "apikey" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: theme.green, children: [
+        "Provider: ",
+        currentProvider.name
+      ] }) }),
+      providerKeys[providerIdx] === "custom" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { marginBottom: 1, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Base URL: " }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: customUrl || "..." })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { marginBottom: 1, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Enter API key: " }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.white, children: apiKey.replace(/./g, "\u2022") }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "Type your API key, then press Enter" }) })
+    ] }),
+    step === "model" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginBottom: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.green, children: "Select model:" }) }),
+      models.map((model, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { paddingLeft: 2, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text, { color: idx === modelIdx ? theme.green : theme.dimGreen, children: [
+        idx === modelIdx ? "\u25B8 " : "  ",
+        model
+      ] }) }, model)),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Text, { color: theme.dimGreen, children: "\u2191\u2193 to select, Enter to confirm" }) })
+    ] })
+  ] });
+}
+
+// src/lib/thread-store.ts
+import { readFileSync as readFileSync3, writeFileSync as writeFileSync2, mkdirSync as mkdirSync2, existsSync as existsSync3 } from "fs";
+import { join as join2 } from "path";
+import { homedir as homedir2 } from "os";
+var THREADS_DIR = join2(homedir2(), ".rewriter");
+var THREADS_META_FILE = join2(THREADS_DIR, "threads.json");
+function loadStore() {
+  try {
+    if (!existsSync3(THREADS_META_FILE)) {
+      return { currentThreadId: null, threads: {} };
+    }
+    return JSON.parse(readFileSync3(THREADS_META_FILE, "utf-8"));
+  } catch (e) {
+    console.error("[thread-store] load error:", e);
+    return { currentThreadId: null, threads: {} };
+  }
+}
+function saveStore(store) {
+  try {
+    if (!existsSync3(THREADS_DIR)) {
+      mkdirSync2(THREADS_DIR, { recursive: true });
+    }
+    writeFileSync2(THREADS_META_FILE, JSON.stringify(store, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[thread-store] save error:", e);
+  }
+}
+function getCurrentThreadId() {
+  return loadStore().currentThreadId;
+}
+function setCurrentThreadId(threadId) {
+  const store = loadStore();
+  store.currentThreadId = threadId;
+  saveStore(store);
+}
+function createThread(title = "") {
+  const threadId = crypto.randomUUID();
+  const now = Date.now();
+  const store = loadStore();
+  store.currentThreadId = threadId;
+  store.threads[threadId] = {
+    id: threadId,
+    title,
+    createdAt: now,
+    lastActive: now,
+    messageCount: 0
+  };
+  saveStore(store);
+  return threadId;
+}
+function listThreads() {
+  const store = loadStore();
+  return Object.values(store.threads).sort(
+    (a, b) => b.lastActive - a.lastActive
+  );
+}
+function deleteThread(threadId) {
+  const store = loadStore();
+  if (!store.threads[threadId]) return false;
+  delete store.threads[threadId];
+  if (store.currentThreadId === threadId) {
+    store.currentThreadId = Object.keys(store.threads)[0] || null;
+  }
+  saveStore(store);
+  return true;
+}
+function updateThreadMeta(threadId, updates) {
+  const store = loadStore();
+  if (store.threads[threadId]) {
+    store.threads[threadId] = { ...store.threads[threadId], ...updates, lastActive: Date.now() };
+    saveStore(store);
+  }
+}
+
+// src/App.tsx
+var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+function App2() {
+  const { exit } = use_app_default();
+  const [config, setConfig] = (0, import_react27.useState)(() => loadConfig());
+  const [showSetup, setShowSetup] = (0, import_react27.useState)(!config);
+  const [messages, setMessages] = (0, import_react27.useState)([]);
+  const [inputText, setInputText] = (0, import_react27.useState)("");
+  const [isStreaming, setIsStreaming] = (0, import_react27.useState)(false);
+  const [streamingText, setStreamingText] = (0, import_react27.useState)("");
+  const [status, setStatus] = (0, import_react27.useState)("idle");
+  const [sessionId, setSessionId] = (0, import_react27.useState)(() => {
+    const existing = getCurrentThreadId();
+    if (existing) return existing;
+    return createThread();
+  });
+  const [threadList, setThreadList] = (0, import_react27.useState)([]);
+  const [toolCalls, setToolCalls] = (0, import_react27.useState)([]);
+  const [hitlPrompt, setHitlPrompt] = (0, import_react27.useState)(null);
+  const [hitlCallback, setHitlCallback] = (0, import_react27.useState)(null);
+  const [turnCount, setTurnCount] = (0, import_react27.useState)(0);
+  const streamingTextRef = (0, import_react27.useRef)("");
+  const [abortFn, setAbortFn] = (0, import_react27.useState)(null);
+  const [startedAt] = (0, import_react27.useState)(() => Date.now());
+  const [inputReady, setInputReady] = (0, import_react27.useState)(false);
+  const [history, setHistory] = (0, import_react27.useState)(() => {
+    try {
+      const { readFileSync: readFileSync4 } = __require("fs");
+      const { join: join3 } = __require("path");
+      const { homedir: homedir3 } = __require("os");
+      const historyFile = join3(homedir3(), ".rewriter", "history.json");
+      const data = readFileSync4(historyFile, "utf-8");
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  });
+  const [historyIdx, setHistoryIdx] = (0, import_react27.useState)(-1);
+  (0, import_react27.useEffect)(() => {
+    const timer = setTimeout(() => setInputReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+  (0, import_react27.useEffect)(() => {
+    if (config && !showSetup) {
+      setMessages([{
+        id: "welcome",
+        role: "assistant",
+        content: `Paper Rewriter \xB7 ${config.model}
+
+Commands: /help \xB7 /new \xB7 /threads \xB7 /thread <id> \xB7 /quit
+Type a message to chat.`,
+        timestamp: Date.now()
+      }]);
+    }
+  }, [config, showSetup]);
+  const refreshThreads = (0, import_react27.useCallback)(() => {
+    setThreadList(listThreads());
+  }, []);
+  const handleSetupComplete = (0, import_react27.useCallback)((newConfig) => {
+    setConfig(newConfig);
+    setShowSetup(false);
+  }, []);
+  use_input_default((input, key) => {
+    if (!inputReady) return;
+    if (showSetup) return;
+    if (hitlPrompt) return;
+    if (key.upArrow) {
+      if (history.length === 0) return;
+      const newIdx = historyIdx < 0 ? history.length - 1 : Math.max(0, historyIdx - 1);
+      setHistoryIdx(newIdx);
+      setInputText(history[newIdx]);
+      return;
+    }
+    if (key.downArrow) {
+      if (historyIdx < 0) return;
+      const newIdx = historyIdx + 1;
+      if (newIdx >= history.length) {
+        setHistoryIdx(-1);
+        setInputText("");
+      } else {
+        setHistoryIdx(newIdx);
+        setInputText(history[newIdx]);
+      }
+      return;
+    }
+    if (key.return) {
+      const text = inputText.trim();
+      if (!text) return;
+      setHistory((prev) => [...prev, text]);
+      setHistoryIdx(-1);
+      if (text === "/quit") {
+        exit();
+        return;
+      }
+      if (text === "/help") {
+        setMessages((prev) => [...prev, { id: `h-${Date.now()}`, role: "assistant", content: "/help    Show this help\n/new     New thread (conversation)\n/threads List all threads\n/thread <id> Switch to thread\n/del <id> Delete a thread\n/status  Show status\n/config  Reconfigure model\n/quit    Exit", timestamp: Date.now() }]);
+        setInputText("");
+        return;
+      }
+      if (text === "/new") {
+        const newId = createThread();
+        setSessionId(newId);
+        setCurrentThreadId(newId);
+        setMessages([]);
+        setToolCalls([]);
+        setTurnCount(0);
+        refreshThreads();
+        setInputText("");
+        return;
+      }
+      if (text === "/threads") {
+        const threads = listThreads();
+        if (threads.length === 0) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: "No threads yet.", timestamp: Date.now() }]);
+        } else {
+          const lines = threads.map((t) => {
+            const marker = t.id === sessionId ? " \u25CF" : "  ";
+            const title = t.title || t.id.slice(0, 8);
+            return `${marker} ${t.id.slice(0, 8)}... ${title} (${t.messageCount} msgs)`;
+          }).join("\n");
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: `Threads (${threads.length}):
+${lines}`, timestamp: Date.now() }]);
+        }
+        setInputText("");
+        return;
+      }
+      if (text.startsWith("/thread ")) {
+        const targetId = text.slice(8).trim();
+        if (!targetId) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: "Usage: /thread <id>", timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        const threads = listThreads();
+        const found = threads.find((t) => t.id === targetId || t.id.startsWith(targetId));
+        if (!found) {
+          setMessages((prev) => [...prev, { id: `t-${Date.now()}`, role: "assistant", content: `Thread "${targetId}" not found. Use /threads to list.`, timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        setSessionId(found.id);
+        setCurrentThreadId(found.id);
+        fetch(`http://localhost:8765/api/sessions/${found.id}/messages`).then((r) => r.ok ? r.json() : Promise.resolve({ messages: [] })).then((data) => {
+          const loaded = (data.messages || []).map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            toolName: m.tool_name || void 0,
+            timestamp: m.timestamp * 1e3
+          }));
+          setMessages(loaded);
+        }).catch(() => setMessages([]));
+        setToolCalls([]);
+        setTurnCount(0);
+        refreshThreads();
+        setInputText("");
+        return;
+      }
+      if (text.startsWith("/del ")) {
+        const targetId = text.slice(5).trim();
+        if (!targetId) {
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: "Usage: /del <id>", timestamp: Date.now() }]);
+          setInputText("");
+          return;
+        }
+        const deleted = deleteThread(targetId);
+        if (deleted) {
+          const current = getCurrentThreadId();
+          if (current) {
+            setSessionId(current);
+            setCurrentThreadId(current);
+            setMessages([]);
+          }
+          refreshThreads();
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: `Thread ${targetId.slice(0, 8)}... deleted.`, timestamp: Date.now() }]);
+        } else {
+          setMessages((prev) => [...prev, { id: `d-${Date.now()}`, role: "assistant", content: `Thread "${targetId}" not found.`, timestamp: Date.now() }]);
+        }
+        setInputText("");
+        return;
+      }
+      if (text === "/status") {
+        setMessages((prev) => [...prev, { id: `s-${Date.now()}`, role: "assistant", content: `model: ${config?.model || "unknown"}
+thread: ${sessionId}
+messages: ${messages.length}
+turns: ${turnCount}`, timestamp: Date.now() }]);
+        setInputText("");
+        return;
+      }
+      if (text === "/config") {
+        setShowSetup(true);
+        setInputText("");
+        return;
+      }
+      sendMessage(text);
+      setInputText("");
+      return;
+    }
+    if (key.backspace || key.delete) {
+      setInputText((prev) => prev.slice(0, -1));
+      return;
+    }
+    if (key.escape && isStreaming && abortFn) {
+      abortFn();
+      return;
+    }
+    if (input && !key.ctrl && !key.meta) {
+      setInputText((prev) => prev + input);
+    }
+  });
+  const sendMessage = (0, import_react27.useCallback)((text) => {
+    const userMsg = { id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now() };
+    setMessages((prev) => [...prev, userMsg]);
+    setTurnCount((prev) => prev + 1);
+    setStatus("processing");
+    setIsStreaming(true);
+    setStreamingText("");
+    streamingTextRef.current = "";
+    setToolCalls([]);
+    fetch("http://localhost:8765/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: sessionId, title: text.slice(0, 50) })
+    }).catch(() => {
+    });
+    const abort = runAgent(
+      [{ id: `m-${Date.now()}`, role: "user", content: text }],
+      sessionId,
+      `run-${Date.now()}`,
+      {
+        onEvent: (event) => {
+          const e = event;
+          switch (e.type) {
+            case "TEXT_MESSAGE_CONTENT":
+              streamingTextRef.current += String(e.delta || "");
+              setStreamingText(streamingTextRef.current);
+              setStatus("streaming");
+              break;
+            case "TOOL_CALL_START":
+              setToolCalls((prev) => [...prev, { id: `tc-${Date.now()}`, name: String(e.toolCallName || e.name || "?"), args: String(e.args || ""), status: "running", startedAt: Date.now() }]);
+              break;
+            case "TOOL_CALL_END":
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: "done" } : tc));
+              break;
+            case "TOOL_CALL_RESULT":
+              setToolCalls((prev) => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, result: String(e.content || "") } : tc));
+              break;
+            case "STEP_STARTED":
+              setStatus("processing");
+              break;
+          }
+        },
+        onError: (err) => {
+          setStatus("error");
+          setIsStreaming(false);
+          setMessages((prev) => [...prev, { id: `e-${Date.now()}`, role: "assistant", content: `Error: ${err.message}`, timestamp: Date.now() }]);
+        },
+        onDone: () => {
+          const text2 = streamingTextRef.current;
+          if (text2) {
+            setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: text2, timestamp: Date.now() }]);
+            fetch("http://localhost:8765/api/sessions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: sessionId, title: "" })
+            }).catch(() => {
+            });
+            updateThreadMeta(sessionId, { messageCount: 0 });
+            refreshThreads();
+          }
+          streamingTextRef.current = "";
+          setIsStreaming(false);
+          setStatus("idle");
+        }
+      }
+    );
+    setAbortFn(() => abort);
+  }, [sessionId, config]);
+  if (showSetup) {
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SetupWizard, { onComplete: handleSetupComplete });
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", flexGrow: 1, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TranscriptPane, { messages, streamingText, isStreaming }),
+    toolCalls.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ToolCallCards, { toolCalls }),
+    hitlPrompt && hitlCallback && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(HitlPrompt, { prompt: hitlPrompt, onAnswer: hitlCallback }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { flexDirection: "column", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u250C\u2500 Input " + "\u2500".repeat(Math.max(0, (process.stdout.columns || 80) - 11)) + "\u2510" }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Box_default, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2502 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.green, bold: true, children: "\u25B8 " }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.white, children: inputText }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.dimGreen, children: "\u258C" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2514" + "\u2500".repeat(Math.max(0, (process.stdout.columns || 80) - 3)) + "\u2518" })
+    ] }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       StatusBar,
       {
-        sessionId: state.sessionId,
-        status: state.status,
-        toolCallCount: state.toolCallCount,
-        turnCount: state.turnCount
+        status,
+        toolCount: toolCalls.length,
+        turnCount,
+        sessionId: sessionId.slice(0, 8),
+        model: config?.model || "unknown",
+        startedAt
       }
-    )
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Box_default, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text, { color: theme.burgundy, children: "\u2500".repeat(process.stdout.columns || 80) }) })
   ] });
 }
 
@@ -34577,7 +34783,7 @@ if (!process.stdin.isTTY) {
 }
 process.stdout.write("\x1B[2J\x1B[H\x1B[3J");
 var { waitUntilExit } = render_default(import_react28.default.createElement(App2), {
-  exitOnCtrlC: false
+  exitOnCtrlC: true
 });
 waitUntilExit().then(() => {
   process.stdout.write("\x1B[?25h");

@@ -54,6 +54,19 @@ app.add_middleware(
 from fastapi.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# Strip /pr/ prefix for reverse proxy compatibility (abcyesno.cn/projects/paper-rewriter)
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class StripPrPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.url.path.startswith("/pr/"):
+            request.scope["path"] = request.url.path[3:]  # strip "/pr"
+            request.scope["root_path"] = "/pr"
+        return await call_next(request)
+
+app.add_middleware(StripPrPrefixMiddleware)
+
 # ── 状态 ──
 RUNS_DIR = Path(__file__).parent.parent / "runs"
 RUNS_DIR.mkdir(exist_ok=True)

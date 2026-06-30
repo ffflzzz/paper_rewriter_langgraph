@@ -1,4 +1,4 @@
-﻿"""Pipeline 配置 - 统一使用 Agnes AI"""
+"""Pipeline 配置 — 统一使用 Agnes AI"""
 import os
 
 # 完全移除代理，直连所有服务（Clash代理导致langchain_openai超时）
@@ -7,16 +7,22 @@ for _k in list(os.environ.keys()):
         del os.environ[_k]
 os.environ['no_proxy'] = '*'
 
-# LLM 配置 - Agnes AI
+# LLM 配置 — Agnes AI（与 hermes 主模型一致）
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "cpk-8FX8tQvmzWKq5oHyf1C7h0ugkYA7uPuSPfbi7SQ95foE67Ds")
+LLM_API_KEY=os.getenv("LLM_API_KEY", "cpk-8FX8tQvmzWKq5oHyf1C7h0ugkYA7uPuSPfbi7SQ95foE67Ds")
 LLM_MODEL = os.getenv("LLM_MODEL", "agnes-2.0-flash")
+
+# 如果 LLM_PROVIDER 设为 mimo，则切回 MiMo
+if os.getenv("LLM_PROVIDER", "agnes") == "mimo":
+    LLM_BASE_URL = os.getenv("MIMO_BASE_URL", "https://token-plan-cn.xiaomimimo.com/v1")
+    LLM_API_KEY = os.getenv("MIMO_API_KEY", "")
+    LLM_MODEL = os.getenv("MIMO_MODEL", "mimo-v2.5-pro")
 
 # 质量阈值
 PASS_SCORE = float(os.getenv("PASS_SCORE", "8.5"))
 MAX_ROUNDS = int(os.getenv("MAX_ROUNDS", "3"))
 
-# 章节批量大小
+# 章节批次大小
 CHAPTERS_PER_BATCH = int(os.getenv("CHAPTERS_PER_BATCH", "3"))
 
 # PDF 输出目录

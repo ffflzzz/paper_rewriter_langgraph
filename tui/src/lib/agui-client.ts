@@ -32,6 +32,11 @@ export interface StreamCallbacks {
 /**
  * Run the agent via AG-UI SSE endpoint.
  * Returns an abort function.
+ *
+ * @param messages - Initial messages for this run
+ * @param threadId - Persistent thread ID for session continuity. If null, a new UUID is generated.
+ * @param runId - Unique run identifier
+ * @param callbacks - Stream event callbacks
  */
 export function runAgent(
   messages: Array<{ id: string; role: string; content: string }>,

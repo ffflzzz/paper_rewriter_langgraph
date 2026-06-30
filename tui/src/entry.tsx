@@ -20,7 +20,7 @@ if (!process.stdin.isTTY) {
 process.stdout.write('\x1b[2J\x1b[H\x1b[3J')
 
 const { waitUntilExit } = render(React.createElement(App), {
-  exitOnCtrlC: false,
+  exitOnCtrlC: true,
 })
 
 waitUntilExit().then(() => {

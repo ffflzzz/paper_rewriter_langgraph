@@ -11,6 +11,7 @@ export type AgUiEventType =
   | 'TOOL_CALL_START'
   | 'TOOL_CALL_ARGS'
   | 'TOOL_CALL_END'
+  | 'TOOL_CALL_RESULT'
   | 'STATE_SNAPSHOT'
   | 'STATE_DELTA'
   | 'MESSAGES_SNAPSHOT'
@@ -69,11 +70,13 @@ export interface ToolCallInfo {
   args: string
   status: 'running' | 'done'
   result?: string
+  startedAt?: number
 }
 
 export interface HitlPromptData {
   message: string
   options: string[]
+  toolName?: string
 }
 
 export interface SessionInfo {

@@ -256,7 +256,7 @@ async def handle_client(websocket, agui_url: str):
                         await websocket.send(hermes_response(rid, {"ok": True}))
                     elif text == "/threads":
                         # Load threads from file and format as text
-                        import json, os
+                        import os
                         threads_dir = os.path.expanduser("~/.rewriter")
                         threads_file = os.path.join(threads_dir, "threads.json")
                         lines = ["No threads yet."]
@@ -282,11 +282,11 @@ async def handle_client(websocket, agui_url: str):
                         await websocket.send(hermes_event("command.reconfigure", session_id, {}))
                         await websocket.send(hermes_response(rid, {"ok": True}))
                     return
-                    asyncio.create_task(client.send_message(text, rid))
-                    # Send immediate ack so TUI doesn't hang
-                    await websocket.send(hermes_response(rid, {"ok": True, "status": "processing"}))
-                else:
-                    await websocket.send(hermes_response(rid, {"ok": True}))
+                
+                # Normal message — forward to AG-UI backend
+                asyncio.create_task(client.send_message(text, rid))
+                # Send immediate ack so TUI doesn't hang
+                await websocket.send(hermes_response(rid, {"ok": True, "status": "processing"}))
 
             elif method == "session.interrupt":
                 await websocket.send(hermes_response(rid, {"ok": True}))

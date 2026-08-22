@@ -57,6 +57,32 @@ runs/attention01/
 └── output.pdf        # 最终生成的中文重写 PDF
 ```
 
+## 📁 目录结构
+
+```
+paper_rewriter_langgraph/
+├── run.py                    # Web Dashboard 入口 (run.py → :8765)
+├── run_attention_rewrite.py  # 全自动命令行运行器
+├── terminal_ui.py            # 终端全屏 TUI
+├── start.bat / start_agui.cmd / start_runtime.cmd  # Windows 启动器
+│
+├── agent/        # LangGraph ReAct Agent（graph/tools/review/paper_search）
+├── pipeline/     # 多角色流水线（备选架构：outline→write→review→judge）
+├── server/       # FastAPI 服务（Dashboard + AG-UI 端点）
+├── frontend/     # React/Vite 前端（构建产物由 FastAPI 托管）
+├── ui/           # 旧版静态 HTML 图可视化
+├── tui/          # TypeScript Ink TUI
+├── etclovg/      # 治理层：token 用量、prompt 版本、会话存储
+│
+├── scripts/      # 实用脚本
+│   ├── batch_rewrite.py        # 本地 PDF 批量重写
+│   └── start_agui_endpoint.py  # 独立 AG-UI 端点 (:8768)
+├── data/         # 示例数据与测试输入
+├── legacy/       # 历史遗留文件（hermes 网关等，见 legacy/README.md）
+├── runs/         # 运行产物（gitignore）
+└── Dockerfile / docker-compose.yml
+```
+
 ## 🚀 快速开始
 
 ### 1. 安装依赖

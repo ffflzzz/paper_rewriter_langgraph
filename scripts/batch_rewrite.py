@@ -1,10 +1,12 @@
 import os, sys, json, time
 
-sys.path.insert(0, os.path.expanduser("~/paper_rewriter_langgraph"))
+# 脚本已移入 scripts/，项目根是其上一级
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PROJECT_ROOT)
 from agent.rewrite_graph import run_rewrite
 
 PDF_DIR = r"C:\Users\Administrator\AppData\Local\Temp\transformer_papers"
-OUTPUT_DIR = os.path.expanduser("~/paper_rewriter_langgraph/runs/batch_transformer")
+OUTPUT_DIR = os.path.join(_PROJECT_ROOT, "runs", "batch_transformer")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 papers = [

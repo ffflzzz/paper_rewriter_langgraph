@@ -1,3 +1,3 @@
 @echo off
-cd /d C:\Users\Administrator\paper_rewriter_langgraph
+cd /d %~dp0
 python -m agent.server_agui

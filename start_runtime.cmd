@@ -1,3 +1,3 @@
 @echo off
-cd /d C:\Users\Administrator\paper_rewriter_langgraph\frontend
+cd /d %~dp0frontend
 node runtime-server.js

@@ -18,3 +18,5 @@ sessions.db
 .wheel-cache/
 .wheels/
 etclovg/usage_log.jsonl
+
+[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/

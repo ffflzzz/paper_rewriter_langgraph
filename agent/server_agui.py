@@ -464,11 +464,11 @@ async def init_checkpointer():
                 inner = body
 
 
-            # 规范化 messages，确保每条消息都有 user.id（AG-UI schema 要求）
+            # 规范化 messages，确保每条消息都有 id（AG-UI schema 要求）
             if "messages" in inner:
                 for msg in inner["messages"]:
-                    if isinstance(msg, dict) and "user" not in msg:
-                        msg["user"] = {"id": msg.get("id", "user")}
+                    if isinstance(msg, dict) and "id" not in msg:
+                        msg["id"] = f"msg_{len(inner['messages'])}"
 
             # 补默认值
             if "state" not in inner:

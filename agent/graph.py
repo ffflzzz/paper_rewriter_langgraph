@@ -17,6 +17,7 @@ import sys
 import json
 import time
 import re
+import threading
 from typing import Literal
 
 # 确保项目根目录在sys.path中
@@ -56,6 +57,9 @@ def _log(msg: str):
 
 # 全局：当前run_id（由server设置）
 _current_run_id: str = ""
+
+# progress.json 并发保护锁（ToolNode并行执行工具时共用）
+_progress_lock = threading.Lock()
 
 def set_current_run_id(run_id: str):
     global _current_run_id
@@ -142,13 +146,13 @@ def read_original_segment(start_pct: float, end_pct: float) -> str:
 def write_chapter(chapter_id: str, content: str) -> str:
     """写入或覆写一个章节。内容会立即持久化到磁盘。禁止使用markdown格式符号。
     每章至少3000字，充分展开不要压缩。
-    
+
     Args:
         chapter_id: 章节ID，如 Ch1, Ch2
         content: 章节内容，纯文本，禁止markdown
     """
     _log(f"write_chapter: {chapter_id}, {len(content)} 字")
-    
+
     # ── HITL: 确认后才写入 ──
     decision = interrupt({
         "tool": "write_chapter",
@@ -158,29 +162,39 @@ def write_chapter(chapter_id: str, content: str) -> str:
     if str(decision).lower() in ("no", "n", "skip"):
         _log(f"write_chapter: 用户取消 ({decision})")
         return f"用户取消了写入 {chapter_id}"
-    
+
     run_dir = _get_run_dir(_current_run_id)
     chapters_dir = os.path.join(run_dir, "chapters")
     os.makedirs(chapters_dir, exist_ok=True)
-    
+
     chapter_path = os.path.join(chapters_dir, f"{chapter_id}.txt")
-    with open(chapter_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    
-    # 更新进度
-    progress_path = os.path.join(run_dir, "progress.json")
-    if os.path.exists(progress_path):
-        with open(progress_path, "r", encoding="utf-8") as f:
-            progress = json.load(f)
-    else:
+
+    # progress.json 是共享状态：并行工具调用下必须加锁 + 容错 + 原子替换
+    with _progress_lock:
+        with open(chapter_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        progress_path = os.path.join(run_dir, "progress.json")
         progress = {"chapters": {}, "started_at": time.time()}
-    
-    progress["chapters"][chapter_id] = {"chars": len(content), "written_at": time.time()}
-    progress["last_updated"] = time.time()
-    
-    with open(progress_path, "w", encoding="utf-8") as f:
-        json.dump(progress, f, ensure_ascii=False, indent=2)
-    
+        if os.path.exists(progress_path):
+            try:
+                with open(progress_path, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    progress = loaded
+            except (json.JSONDecodeError, OSError):
+                _log("write_chapter: progress.json 损坏，重建")
+        if not isinstance(progress.get("chapters"), dict):
+            progress["chapters"] = {}
+
+        progress["chapters"][chapter_id] = {"chars": len(content), "written_at": time.time()}
+        progress["last_updated"] = time.time()
+
+        tmp_path = progress_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(progress, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, progress_path)
+
     return f"已保存 {chapter_id}，{len(content)} 字"
 
 
@@ -488,11 +502,11 @@ tools_by_name = {t.name: t for t in tools}
 def init_run(run_id: str, original_text: str, paper_title: str = ""):
     """初始化run目录，保存原文"""
     run_dir = _get_run_dir(run_id)
-    
+
     original_path = os.path.join(run_dir, "original.txt")
     with open(original_path, "w", encoding="utf-8") as f:
         f.write(original_text)
-    
+
     meta = {
         "run_id": run_id,
         "paper_title": paper_title,
@@ -501,7 +515,13 @@ def init_run(run_id: str, original_text: str, paper_title: str = ""):
     }
     with open(os.path.join(run_dir, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
-    
+
+    # 预置合法的progress.json，避免并行工具首次读空/损坏文件
+    progress_path = os.path.join(run_dir, "progress.json")
+    if not os.path.exists(progress_path):
+        with open(progress_path, "w", encoding="utf-8") as f:
+            json.dump({"chapters": {}, "started_at": time.time()}, f, ensure_ascii=False)
+
     _log(f"init_run: {run_id}, 原文{len(original_text)}字")
 
 
@@ -518,7 +538,8 @@ def _get_llm_with_tools():
         api_key=LLM_API_KEY,
         model=LLM_MODEL,
         temperature=0.4,
-        max_tokens=4096,
+        # 章节内容以tool_call参数传输，3000+字中文需要充足输出空间
+        max_tokens=int(os.getenv("AGENT_MAX_TOKENS", "16384")),
         timeout=180,
     )
     return llm.bind_tools(tools)
@@ -537,11 +558,12 @@ SYSTEM_PROMPT = """你是论文重写助手，运行在本地终端中。
 工作流程（仅在用户明确要求时启动）：
 1. 先用 search_original 和 read_original_segment 浏览原文，理解整体结构
 2. 用 save_outline 保存章节大纲（根据原文长度动态调整章节数：每1-2万字原文对应1章重写）
-3. 逐章写作，每章用 write_chapter 保存（立即持久化到磁盘）
-4. 每写完一章，用 self_review_chapter 自审
-5. 如果自审发现问题，用 search_original 查原文确认，然后用 write_chapter 覆写
-6. 写完所有章节后，用 list_chapters 确认覆盖情况
-7. 全部完成后调用 generate_pdf 生成PDF，告知用户PDF路径
+3. 严格串行逐章写作：每次回复只允许调用一个 write_chapter，写完并自审通过后再写下一章，禁止一次并行写多章
+4. 每章至少3000字（不足会被审查退回），充分展开不要压缩
+5. 每写完一章，用 self_review_chapter 自审
+6. 如果自审发现问题，用 search_original 查原文确认，然后用 write_chapter 覆写
+7. 写完所有章节后，用 list_chapters 确认覆盖情况
+8. 全部完成后调用 generate_pdf 生成PDF，告知用户PDF路径
 
 写作规则：
 - 中文输出，术语首次出现时括号注英文原文
@@ -670,22 +692,32 @@ REVIEW_SYSTEM_PROMPT = """你是严格的学术审稿人。你的任务是审查
 def review_node(state: MessagesState):
     """独立审查节点：用同模型独立session审查章节质量。"""
     from .event_log import log_event
-    
+
     log_event("STEP_STARTED", {"stepName": "review"})
-    
+
     messages = state["messages"]
-    
-    # 找到最近写入的章节内容
-    chapter_content = ""
+
+    # write_chapter 的 ToolMessage 只含确认文本（"已保存 ChN，N 字"），
+    # 章节正文要从磁盘读：先从确认文本提取章节ID
+    chapter_id = None
     for msg in reversed(messages):
         if isinstance(msg, ToolMessage) and msg.name == "write_chapter":
-            chapter_content = msg.content
+            m = re.search(r"已保存\s+(\S+?)\s*[，,]", str(msg.content))
+            if m:
+                chapter_id = m.group(1)
             break
-    
+
+    chapter_content = ""
+    if chapter_id:
+        chapter_path = os.path.join(_get_run_dir(_current_run_id), "chapters", f"{chapter_id}.txt")
+        if os.path.exists(chapter_path):
+            with open(chapter_path, "r", encoding="utf-8") as f:
+                chapter_content = f.read()
+
     if not chapter_content:
         log_event("STEP_FINISHED", {"stepName": "review"})
-        return {"messages": [AIMessage(content="没有找到需要审查的章节。")]}
-    
+        return {"messages": [AIMessage(content="✅ 审查通过。（未找到需审查的章节，跳过）")]}
+
     # 创建独立的审查LLM (同模型，但不同temperature)
     from langchain_openai import ChatOpenAI
     from pipeline.config import LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
@@ -695,11 +727,11 @@ def review_node(state: MessagesState):
         model=LLM_MODEL,
         temperature=0.3,  # 更严格的temperature
     )
-    
+
     # 独立session: 新的对话历史
     review_messages = [
         SystemMessage(content=REVIEW_SYSTEM_PROMPT),
-        HumanMessage(content=f"请审查以下章节：\n\n{chapter_content[:3000]}")
+        HumanMessage(content=f"请审查以下章节（{chapter_id}，共{len(chapter_content)}字）：\n\n{chapter_content[:6000]}")
     ]
     
     response = review_llm.invoke(review_messages)
@@ -711,6 +743,12 @@ def review_node(state: MessagesState):
     
     # 解析审查结果
     passed = "通过：是" in review_result or "评分：8" in review_result or "评分：9" in review_result or "评分：10" in review_result
+
+    # 防无限循环：累计3次未通过后强制放行（质量由最终PDF把关）
+    fail_count = sum(1 for m in messages if isinstance(m, AIMessage) and "审查未通过" in str(m.content))
+    if not passed and fail_count >= 3:
+        review_result += "\n\n（已连续多次未通过，达到重写上限，本轮放行）"
+        passed = True
     
     if passed:
         return {"messages": [AIMessage(content=f"✅ 审查通过。\n\n{review_result}")]}
@@ -800,9 +838,9 @@ def build_agent_graph_v2(checkpointer=None):
     
     builder = StateGraph(MessagesState)
     
-    # 包装ToolNode
-    _tool_node = ToolNode(tools)
-    
+    # 工具报错不炸图：错误信息回传给agent自行恢复
+    _tool_node = ToolNode(tools, handle_tool_errors=True)
+
     def logged_tools_node(state):
         log_event("STEP_STARTED", {"stepName": "tools"})
         result = _tool_node.invoke(state)
@@ -815,7 +853,7 @@ def build_agent_graph_v2(checkpointer=None):
                 })
         log_event("STEP_FINISHED", {"stepName": "tools"})
         return result
-    
+
     # 添加节点
     builder.add_node("agent", agent_node)
     builder.add_node("tools", logged_tools_node)

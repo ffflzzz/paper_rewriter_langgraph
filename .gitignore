@@ -8,3 +8,13 @@ runs/
 node_modules/
 [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/nul
 sessions.db
+
+.venv/
+.local_lib/
+.npm-cache/
+.pip-cache/
+.npm-tmp/
+.pip-tmp/
+.wheel-cache/
+.wheels/
+etclovg/usage_log.jsonl

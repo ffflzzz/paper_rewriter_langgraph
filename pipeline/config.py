@@ -9,8 +9,8 @@ os.environ['no_proxy'] = '*'
 
 # LLM 配置 — Agnes AI（与 hermes 主模型一致）
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1")
-LLM_API_KEY=os.getenv("LLM_API_KEY", "cpk-8FX8tQvmzWKq5oHyf1C7h0ugkYA7uPuSPfbi7SQ95foE67Ds")
-LLM_MODEL = os.getenv("LLM_MODEL", "agnes-2.0-flash")
+LLM_API_KEY=os.getenv("LLM_API_KEY", "cpk-VdOissJMrHBFsSi193GP7mxpLnwCqYW2hr9ybTqxXq9KDpno")
+LLM_MODEL = os.getenv("LLM_MODEL", "agnes-2.5-flash")
 
 # 如果 LLM_PROVIDER 设为 mimo，则切回 MiMo
 if os.getenv("LLM_PROVIDER", "agnes") == "mimo":

@@ -26,6 +26,7 @@ if _PROJECT_ROOT not in sys.path:
 
 from agent.graph import build_agent_graph, set_current_run_id, init_run, _get_run_dir, _log
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langgraph.types import Command
 from pipeline.config import SERVER_HOST, SERVER_PORT, OUTPUT_DIR
 
 # ─── 全局状态 ───
@@ -37,7 +38,13 @@ current_run: dict = {
     "error": "",
     "tool_calls": 0,
     "last_action": "",
+    "auto_approve": False,
+    "awaiting": None,   # HITL 挂起信息：{tool, reason, args}
 }
+
+# HITL 决策通道：运行线程在此等待，resume 端点注入决策值
+_resume_event: threading.Event = threading.Event()
+_resume_value: list = [True]
 
 _sse_queues: list = []
 
@@ -70,14 +77,23 @@ if os.path.exists(_ui_dir):
 
 _frontend_dist = os.path.join(_PROJECT_ROOT, "frontend", "dist")
 if os.path.exists(_frontend_dist):
-    app.mount("/assets", StaticFiles(directory=os.path.join(_frontend_dist, "assets")), name="frontend-assets")
+    # 构建产物可能全部内联进 index.html（CDN React + 浏览器内 Babel），assets 目录不一定存在
+    _assets_dir = os.path.join(_frontend_dist, "assets")
+    if os.path.isdir(_assets_dir):
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="frontend-assets")
 
 
 class RunRequest(BaseModel):
     paper_title: str
-    original_text: str
+    original_text: str = ""  # 可选：为空时 Agent 自动搜索并下载论文
     target_audience: str = "大一非理工科学生"
     max_tool_calls: int = 200
+    auto_approve: bool = False  # True=全自动（HITL 中断自动批准）；False=每步等人工确认
+
+
+class ResumeRequest(BaseModel):
+    # True/False = 批准/跳过；字符串 = 批准并捎话给 Agent（成为工具返回值进入其上下文）
+    decision: bool | str = True
 
 
 from fastapi import UploadFile, File as FastAPIFile
@@ -159,6 +175,8 @@ async def get_status():
         "error": current_run.get("error", ""),
         "tool_calls": current_run.get("tool_calls", 0),
         "last_action": current_run.get("last_action", ""),
+        "auto_approve": current_run.get("auto_approve", False),
+        "awaiting": current_run.get("awaiting"),
         "chapters": chapters_info,
     }
 
@@ -217,7 +235,10 @@ async def start_run(req: RunRequest):
         "ended_at": None,
         "tool_calls": 0,
         "last_action": "启动中...",
+        "auto_approve": req.auto_approve,
+        "awaiting": None,
     })
+    _resume_event.clear()
 
     thread = threading.Thread(
         target=_run_agent,
@@ -233,7 +254,25 @@ async def start_run(req: RunRequest):
 async def stop_run():
     current_run["status"] = "stopped"
     current_run["ended_at"] = time.time()
+    # 若正卡在 HITL 等待，注入 False 解除阻塞，运行线程随即退出
+    if current_run.get("awaiting"):
+        _resume_value[0] = False
+        _resume_event.set()
     return {"status": "stopped"}
+
+
+@app.post("/api/runs/{run_id}/resume")
+async def resume_run(run_id: str, req: ResumeRequest):
+    """人工决策：批准/跳过当前挂起的 HITL 中断；字符串则作为指示捎给 Agent"""
+    if current_run.get("run_id") != run_id:
+        return JSONResponse({"error": "run_id 不匹配"}, status_code=409)
+    if not current_run.get("awaiting"):
+        return JSONResponse({"error": "当前没有挂起的人工确认"}, status_code=409)
+
+    _resume_value[0] = req.decision
+    current_run["awaiting"] = None
+    _resume_event.set()
+    return {"status": "resumed", "decision": req.decision if isinstance(req.decision, bool) else "instructed"}
 
 
 @app.get("/api/events")
@@ -286,63 +325,125 @@ def _run_agent(run_id: str, paper_title: str, original_text: str,
     _fire_sse("agent_start", {"run_id": run_id, "paper_title": paper_title})
 
     try:
-        # 初始化run目录
+        # 初始化run目录（原文为空时跳过写入，由 Agent 自行检索下载）
         set_current_run_id(run_id)
         init_run(run_id, original_text, paper_title=paper_title)
 
         # 构建图
         graph = build_agent_graph()
 
-        # 初始消息
-        first_message = f"请开始重写论文《{paper_title}》。目标读者：{target_audience}。原文长度：{len(original_text)}字。先浏览原文结构，然后生成大纲。"
+        # 初始消息：提供了原文 → 直接浏览重写；未提供 → 让 Agent 自己搜索下载
+        if original_text.strip():
+            first_message = (
+                f"请开始重写论文《{paper_title}》。目标读者：{target_audience}。"
+                f"原文长度：{len(original_text)}字。先浏览原文结构，然后生成大纲，逐章写作，最后生成PDF。"
+            )
+        else:
+            first_message = (
+                f"用户只提供了论文标题《{paper_title}》，没有提供原文。"
+                f"请先用 search_paper 工具搜索这篇论文（目标读者：{target_audience}），"
+                "从结果中选择标题最匹配的一篇，用 download_paper 下载（它会自动提取全文并保存）；"
+                "然后浏览原文、生成大纲、逐章写作，最后 generate_pdf。现在开始。"
+            )
 
         tool_call_count = 0
 
-        # 用stream逐步执行，实时推送事件
-        for event in graph.stream(
-            {"messages": [HumanMessage(content=first_message)]},
-            {"configurable": {"thread_id": run_id}, "recursion_limit": max_tool_calls * 2},
-            stream_mode="updates",
-        ):
-            if current_run["status"] == "stopped":
-                _log(f"[Agent {run_id}] 用户停止")
-                break
+        config = {
+            "configurable": {"thread_id": run_id},
+            "recursion_limit": max_tool_calls * 2,
+        }
 
-            for node_name, node_output in event.items():
-                _log(f"[Agent {run_id}] {node_name}")
+        def extract_interrupt_info() -> dict:
+            """从图检查点状态提取挂起中断的详情（供审批卡展示）"""
+            try:
+                snap = graph.get_state(config)
+                for t in getattr(snap, "tasks", []) or []:
+                    its = getattr(t, "interrupts", None)
+                    if its:
+                        val = getattr(its[0], "value", None)
+                        if isinstance(val, dict):
+                            return {
+                                "tool": str(val.get("tool", "")),
+                                "reason": str(val.get("reason", "")),
+                                "args": json.dumps(val.get("args", {}), ensure_ascii=False)[:400],
+                            }
+            except Exception as e:
+                _log(f"[Agent {run_id}] 提取中断信息失败: {e}")
+            return {"tool": "?", "reason": "工具执行前等待确认", "args": ""}
 
-                if isinstance(node_output, dict):
-                    msgs = node_output.get("messages", [])
-                else:
-                    msgs = []
-                for msg in msgs:
-                    # AIMessage with tool_calls
-                    if isinstance(msg, AIMessage) and msg.tool_calls:
-                        for tc in msg.tool_calls:
-                            tool_call_count += 1
-                            current_run["tool_calls"] = tool_call_count
-                            current_run["last_action"] = f"调用 {tc['name']}"
-                            _fire_sse("tool_call", {
+        def consume(stream_iter) -> bool:
+            """消费一个 stream；返回是否以中断收尾"""
+            nonlocal tool_call_count
+            pending = False
+            for event in stream_iter:
+                if current_run["status"] == "stopped":
+                    return False
+                for node_name, node_output in event.items():
+                    _log(f"[Agent {run_id}] {node_name}")
+                    if node_name == "__interrupt__":
+                        pending = True
+                        continue
+                    if not isinstance(node_output, dict):
+                        continue
+                    for msg in node_output.get("messages", []):
+                        if isinstance(msg, AIMessage):
+                            # 思考文本与工具调用可并存于同一条 AIMessage：都推送
+                            if msg.content:
+                                current_run["last_action"] = str(msg.content)[:200]
+                                _fire_sse("agent_message", {
+                                    "run_id": run_id,
+                                    "content": str(msg.content)[:2000],
+                                })
+                            for tc in msg.tool_calls or []:
+                                tool_call_count += 1
+                                current_run["tool_calls"] = tool_call_count
+                                current_run["last_action"] = f"调用 {tc['name']}"
+                                _fire_sse("tool_call", {
+                                    "run_id": run_id,
+                                    "tool": tc["name"],
+                                    "args": str(tc.get("args", ""))[:500],
+                                    "count": tool_call_count,
+                                })
+                        elif isinstance(msg, ToolMessage):
+                            _fire_sse("tool_result", {
                                 "run_id": run_id,
-                                "tool": tc["name"],
-                                "args": str(tc["args"])[:200],
-                                "count": tool_call_count,
+                                "result": str(msg.content)[:800],
                             })
-                    
-                    # AIMessage with content (agent's text response)
-                    elif isinstance(msg, AIMessage) and msg.content:
-                        current_run["last_action"] = msg.content[:200]
-                        _fire_sse("agent_message", {
-                            "run_id": run_id,
-                            "content": msg.content[:500],
-                        })
-                    
-                    # ToolMessage (tool result)
-                    elif isinstance(msg, ToolMessage):
-                        _fire_sse("tool_result", {
-                            "run_id": run_id,
-                            "result": str(msg.content)[:300],
-                        })
+                        elif isinstance(msg, HumanMessage) and str(msg.content).startswith("[用户指示]"):
+                            _fire_sse("agent_message", {
+                                "run_id": run_id,
+                                "content": str(msg.content),
+                            })
+            return pending
+
+        # 主循环 + HITL 中断处理：
+        #   auto_approve=True  → 自动批准（全自动模式）
+        #   auto_approve=False → 推送审批卡，阻塞等待 /api/runs/{id}/resume 的人工决策
+        pending = consume(graph.stream(
+            {"messages": [HumanMessage(content=first_message)]}, config, stream_mode="updates",
+        ))
+        resumes = 0
+        while pending and current_run["status"] == "running":
+            resumes += 1
+            info = extract_interrupt_info()
+            if current_run.get("auto_approve"):
+                decision: bool | str = True
+                _log(f"[Agent {run_id}] 自动批准 HITL 中断 #{resumes}")
+            else:
+                current_run["awaiting"] = info
+                _fire_sse("interrupt", {"run_id": run_id, **info})
+                _log(f"[Agent {run_id}] HITL 等待人工决策 #{resumes}: {info.get('tool')}")
+                _resume_event.clear()
+                _resume_event.wait()          # 阻塞直至人工决策 / 停止注入解除
+                decision = _resume_value[0]
+                current_run["awaiting"] = None
+                if current_run["status"] != "running":
+                    break
+                if isinstance(decision, bool):
+                    _log(f"[Agent {run_id}] HITL 决策 #{resumes}: {'批准' if decision else '跳过'}")
+                else:
+                    _log(f"[Agent {run_id}] HITL 决策 #{resumes}: 批准并附指示（{len(decision)}字）")
+            pending = consume(graph.stream(Command(resume=decision), config, stream_mode="updates"))
 
         if current_run["status"] != "stopped":
             current_run["status"] = "completed"

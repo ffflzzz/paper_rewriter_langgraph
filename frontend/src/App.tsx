@@ -1,306 +1,66 @@
-import "./styles.css";
-import { useState, useCallback, useEffect, useRef, Component } from 'react';
-import type { ReactNode } from 'react';
-import { AgentDashboard } from "./AgentDashboard";
-import { SessionSidebar, apiUpsertSession, apiAddMessage, apiGetMessages } from "./SessionSidebar";
+import { useState } from 'react'
+import { useRunStatus, useRuns, useAgentFeed } from './hooks'
+import { Sidebar } from './components/Sidebar'
+import { NewRunForm } from './components/NewRunForm'
+import { AgentConsoleView } from './components/AgentConsoleView'
 
-// 直连AG-UI端点
-const AGUI_URL = `${window.location.origin}/pr/api/copilotkit`;
+type View = { page: 'new' } | { page: 'run'; runId: string }
 
-function getOrCreateThreadId(): string {
-  const stored = localStorage.getItem('paper_rewriter_thread_id');
-  if (stored) return stored;
-  const newId = crypto.randomUUID();
-  localStorage.setItem('paper_rewriter_thread_id', newId);
-  return newId;
-}
+export default function App() {
+  const [view, setView] = useState<View>({ page: 'new' })
+  const { status } = useRunStatus()
+  const { runs, reload: reloadRuns } = useRuns()
 
-function saveThreadId(threadId: string) {
-  localStorage.setItem('paper_rewriter_thread_id', threadId);
-}
+  // 仅当右侧正在看"活着的运行"时订阅 SSE
+  const liveRunId = status?.status === 'running' ? status.run_id : null
+  const viewingLive = view.page === 'run' && liveRunId !== null && view.runId === liveRunId
+  const { items, stage, connected, clear } = useAgentFeed(viewingLive)
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  toolName?: string;
-  timestamp: number;
-  downloadLinks?: { name: string; url: string }[];
-}
-
-// Error Boundary
-class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: string}> {
-  constructor(props: {children: ReactNode}) { super(props); this.state = { hasError: false, error: '' }; }
-  static getDerivedStateFromError(error: Error) { return { hasError: true, error: error.message }; }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{padding: 20, color: '#f85149', background: '#1a1a2a', borderRadius: 8, margin: 20}}>
-          <h3>⚠️ 组件加载失败</h3>
-          <p>{this.state.error}</p>
-          <button onClick={() => {localStorage.clear(); window.location.reload();}} style={{padding: '8px 16px', marginTop: 10, cursor: 'pointer'}}>
-            清除缓存并刷新
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
+  function handleStarted(runId: string) {
+    setView({ page: 'run', runId })
+    clear()
+    reloadRuns()
   }
-}
 
-function ChatPanel({ threadId }: { threadId: string }) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamContent, setStreamContent] = useState('');
-  const [toolCalls, setToolCalls] = useState<{name: string; status: string}[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isAtBottomRef = useRef(true);
-
-  // Fetch output files after stream ends and show completion notification
-  const showCompletionNotification = useCallback(async () => {
-    try {
-      const resp = await fetch(`${window.location.origin}/pr/api/output/list`);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const files = data.files || [];
-      if (files.length === 0) return;
-
-      const links = files.map((f: any) => ({
-        name: f.name,
-        url: `/pr/api/output/${encodeURIComponent(f.name)}`,
-      }));
-
-      const completionMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `✅ 重写完成！生成了 ${files.length} 个文件`,
-        timestamp: Date.now(),
-        downloadLinks: links,
-      };
-
-      setMessages(prev => {
-        const updated = [...prev, completionMsg];
-        apiAddMessage(threadId, completionMsg.id, 'assistant', completionMsg.content);
-        return updated;
-      });
-    } catch (e) {
-      console.error('Failed to fetch output files:', e);
-    }
-  }, [threadId]);
-
-  // 从服务端加载消息
-  useEffect(() => {
-    const load = async () => {
-      const msgs = await apiGetMessages(threadId);
-      setMessages(msgs.map(m => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant' | 'tool',
-        content: m.content,
-        toolName: m.tool_name || '',
-        timestamp: m.timestamp * 1000,
-      })));
-    };
-    load();
-  }, [threadId]);
-
-  const scrollToBottom = useCallback(() => {
-    if (isAtBottomRef.current) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => { scrollToBottom(); }, [messages, streamContent, scrollToBottom]);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-  }, []);
-
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-
-    const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: text, timestamp: Date.now() };
-    const updated = [...messages, userMsg];
-    setMessages(updated);
-    apiAddMessage(threadId, userMsg.id, 'user', text);
-    apiUpsertSession(threadId, text.slice(0, 30));
-    setInput('');
-    setIsStreaming(true);
-    setStreamContent('');
-    setToolCalls([]);
-    isAtBottomRef.current = true;
-
-    try {
-      const runId = crypto.randomUUID().slice(0, 8);
-      const resp = await fetch(AGUI_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          threadId, runId, state: {},
-          messages: updated.map(m => ({ id: m.id, role: m.role, content: m.content })),
-          tools: [], context: [], forwardedProps: {},
-        }),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error('No reader');
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fullContent = '';
-      const toolMsgs: Message[] = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const evt = JSON.parse(line.slice(6));
-            if (evt.type === 'RAW' && evt.event?.event === 'on_chat_model_stream') {
-              const c = evt.event.data?.chunk?.content || '';
-              if (c) { fullContent += c; setStreamContent(fullContent); }
-            }
-            if (evt.type === 'TEXT_MESSAGE_CONTENT') {
-              const c = evt.content || '';
-              if (c) { fullContent += c; setStreamContent(fullContent); }
-            }
-            if (evt.type === 'TOOL_CALL_START') {
-              setToolCalls(prev => [...prev, { name: evt.name || evt.toolName || 'tool', status: 'running' }]);
-            }
-            if (evt.type === 'TOOL_CALL_END') {
-              setToolCalls(prev => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: 'done' } : tc));
-            }
-            if (evt.type === 'RAW' && evt.event?.event === 'on_tool_start') {
-              setToolCalls(prev => [...prev, { name: evt.event.name || 'tool', status: 'running' }]);
-            }
-            if (evt.type === 'RAW' && evt.event?.event === 'on_tool_end') {
-              setToolCalls(prev => prev.map((tc, i) => i === prev.length - 1 ? { ...tc, status: 'done' } : tc));
-            }
-          } catch {}
-        }
-      }
-
-      const finalMsgs: Message[] = [...updated];
-      if (fullContent) {
-        const assistantMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: fullContent, timestamp: Date.now() };
-        finalMsgs.push(assistantMsg);
-        apiAddMessage(threadId, assistantMsg.id, 'assistant', fullContent);
-      }
-      finalMsgs.push(...toolMsgs);
-      setMessages(finalMsgs);
-      apiUpsertSession(threadId);
-
-      // Show completion notification with download links
-      await showCompletionNotification();
-    } catch (e: any) {
-      const errMsg: Message = { id: crypto.randomUUID(), role: 'assistant', content: `[错误] ${e.message}`, timestamp: Date.now() };
-      const final = [...updated, errMsg];
-      setMessages(final);
-      apiAddMessage(threadId, errMsg.id, 'assistant', errMsg.content);
-    } finally {
-      setIsStreaming(false);
-      setStreamContent('');
-      setToolCalls([]);
-    }
-  }, [input, isStreaming, messages, threadId]);
+  function openRun(runId: string) {
+    setView({ page: 'run', runId })
+    clear()
+  }
 
   return (
-    <div className="chat-panel">
-      <div className="chat-messages" ref={scrollContainerRef} onScroll={handleScroll}>
-        {messages.length === 0 && (
-          <div className="chat-empty">
-            <p>你好！我是论文重写助手。</p>
-            <p>请提供论文标题或关键词，我会搜索相关论文。</p>
-          </div>
+    <div className="app">
+      <Sidebar
+        runs={runs}
+        activeRunId={view.page === 'run' ? view.runId : null}
+        onSelect={openRun}
+        onNew={() => setView({ page: 'new' })}
+      />
+
+      <main className="main">
+        {view.page === 'new' && <NewRunForm onStart={handleStarted} />}
+
+        {view.page === 'run' && (
+          status?.run_id === view.runId ? (
+            <AgentConsoleView
+              status={status}
+              items={items}
+              stage={stage}
+              sseConnected={connected}
+              onClear={clear}
+            />
+          ) : (
+            <section className="new-run">
+              <h2>{view.runId}</h2>
+              <p className="empty-hint">
+                该运行的实时详情仅在后端内存中保留（服务重启后不可回放）。
+                <br />
+                章节产物在 <code>runs/{view.runId}/chapters/</code>，最终 PDF 在{' '}
+                <code>runs/{view.runId}/output.pdf</code>。
+              </p>
+            </section>
+          )
         )}
-        {messages.filter(msg => msg.role !== 'tool').map(msg => (
-          <div key={msg.id} className={`chat-msg ${msg.role}`}>
-            <div className="chat-msg-content">{msg.content}</div>
-            {msg.downloadLinks && msg.downloadLinks.length > 0 && (
-              <div className="chat-download-links">
-                {msg.downloadLinks.map((link, i) => (
-                  <a key={i} href={link.url} download={link.name} className="chat-download-link">
-                    📄 {link.name}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        {isStreaming && streamContent && (
-          <div className="chat-msg assistant streaming">
-            <div className="chat-msg-content">{streamContent}</div>
-          </div>
-        )}
-        {isStreaming && toolCalls.length > 0 && (
-          <div className="chat-tools">
-            {toolCalls.map((tc, i) => (
-              <div key={i} className={`chat-tool ${tc.status}`}>
-                {tc.status === 'running' ? '🔄' : '✅'} {tc.name}
-              </div>
-            ))}
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="chat-input-area">
-        <textarea
-          className="chat-input"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          placeholder="输入消息... (Enter发送, Shift+Enter换行)"
-          disabled={isStreaming}
-        />
-        <button className="chat-send-btn" onClick={sendMessage} disabled={isStreaming || !input.trim()}>
-          {isStreaming ? '⏳' : '▶'}
-        </button>
-      </div>
+      </main>
     </div>
-  );
+  )
 }
-
-function App() {
-  const [threadId, setThreadId] = useState(() => getOrCreateThreadId());
-
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    return () => document.documentElement.classList.remove('dark');
-  }, []);
-
-  const handleSwitchThread = useCallback((newThreadId: string) => {
-    setThreadId(newThreadId);
-    saveThreadId(newThreadId);
-  }, []);
-
-  const handleNewThread = useCallback(() => {
-    const newId = crypto.randomUUID();
-    setThreadId(newId);
-    saveThreadId(newId);
-  }, []);
-
-  return (
-    <div className="app-container">
-      <SessionSidebar currentThreadId={threadId} onSwitchThread={handleSwitchThread} onNewThread={handleNewThread} />
-      <ErrorBoundary>
-        <div className="app-layout">
-          <main className="main-content">
-            <div className="dashboard-container">
-              <AgentDashboard runtimeUrl="" />
-            </div>
-          </main>
-          <ChatPanel threadId={threadId} />
-        </div>
-      </ErrorBoundary>
-    </div>
-  );
-}
-
-export default App;

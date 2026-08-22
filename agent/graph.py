@@ -153,7 +153,7 @@ def write_chapter(chapter_id: str, content: str) -> str:
     """
     _log(f"write_chapter: {chapter_id}, {len(content)} 字")
 
-    # ── HITL: 确认后才写入 ──
+    # ── HITL: 确认后才写入；字符串决策 = 批准并附带用户指示 ──
     decision = interrupt({
         "tool": "write_chapter",
         "reason": f"即将写入章节 {chapter_id}（{len(content)} 字）",
@@ -195,7 +195,11 @@ def write_chapter(chapter_id: str, content: str) -> str:
             json.dump(progress, f, ensure_ascii=False, indent=2)
         os.replace(tmp_path, progress_path)
 
-    return f"已保存 {chapter_id}，{len(content)} 字"
+    # 字符串决策 = 用户附加指示，必须回到模型上下文
+    note = ""
+    if not isinstance(decision, bool) and str(decision).strip():
+        note = f"\n\n[用户附加指示] {decision}\n（请认真对待：如涉及本章内容，立即用 write_chapter 覆写落实）"
+    return f"已保存 {chapter_id}，{len(content)} 字{note}"
 
 
 @tool
@@ -298,13 +302,16 @@ def save_outline(outline_text: str) -> str:
     if str(decision).lower() in ("no", "n", "skip"):
         _log(f"save_outline: 用户取消 ({decision})")
         return "用户取消了保存大纲"
-    
+
     run_dir = _get_run_dir(_current_run_id)
     outline_path = os.path.join(run_dir, "outline.txt")
     with open(outline_path, "w", encoding="utf-8") as f:
         f.write(outline_text)
     _log(f"save_outline: {len(outline_text)} 字")
-    return f"大纲已保存，{len(outline_text)} 字"
+    note = ""
+    if not isinstance(decision, bool) and str(decision).strip():
+        note = f"\n\n[用户附加指示] {decision}\n（请认真对待：如涉及大纲结构，用 save_outline 重新保存后再开始写作）"
+    return f"大纲已保存，{len(outline_text)} 字{note}"
 
 
 @tool
@@ -382,8 +389,11 @@ def download_paper(paper_id: str, source: str = "arxiv") -> str:
             with open(original_path, "w", encoding="utf-8") as f:
                 f.write(result['text'])
             _log(f"download_paper: saved {len(result['text'])} chars to original.txt")
-        
-        return result['message']
+
+        note = ""
+        if not isinstance(decision, bool) and str(decision).strip():
+            note = f"\n\n[用户附加指示] {decision}"
+        return result['message'] + note
     except Exception as e:
         _log(f"download_paper error: {e}")
         return f"下载失败: {str(e)}"
@@ -500,12 +510,13 @@ tools_by_name = {t.name: t for t in tools}
 # 初始化run（保存原文到磁盘）
 # ─────────────────────────────────────────────
 def init_run(run_id: str, original_text: str, paper_title: str = ""):
-    """初始化run目录，保存原文"""
+    """初始化run目录；原文为空时不落盘，等 download_paper 自行创建"""
     run_dir = _get_run_dir(run_id)
 
-    original_path = os.path.join(run_dir, "original.txt")
-    with open(original_path, "w", encoding="utf-8") as f:
-        f.write(original_text)
+    if original_text:
+        original_path = os.path.join(run_dir, "original.txt")
+        with open(original_path, "w", encoding="utf-8") as f:
+            f.write(original_text)
 
     meta = {
         "run_id": run_id,
